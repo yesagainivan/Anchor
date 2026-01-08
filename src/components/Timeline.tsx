@@ -6,26 +6,25 @@ interface TimelineProps {
     definitions: Task[];
 }
 
-const LABEL_WIDTH = 140; // Fixed width for task labels in pixels
+const LABEL_WIDTH = 140;
 
 export function Timeline({ tasks, definitions }: TimelineProps) {
     if (tasks.length === 0) {
         return (
-            <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-white rounded-xl border border-gray-200">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-surface rounded-xl border border-border">
+                <div className="w-16 h-16 bg-surface-alt rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">No schedule yet</h3>
-                <p className="text-sm text-gray-500 max-w-xs">
+                <h3 className="text-lg font-semibold text-text mb-1">No schedule yet</h3>
+                <p className="text-sm text-text-muted max-w-xs">
                     Add tasks and set a deadline to generate your backwards schedule.
                 </p>
             </div>
         );
     }
 
-    // Sort by start date
     const sortedTasks = [...tasks].sort((a, b) =>
         new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
     );
@@ -41,11 +40,10 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
 
     const getTaskIndex = (id: string) => sortedTasks.findIndex(t => t.id === id);
 
-    // Generate date markers (leave room on right edge)
     const dateMarkers: { date: Date; pct: number }[] = [];
-    const markerCount = Math.min(5, totalDays); // Reduced to leave right margin
+    const markerCount = Math.min(5, totalDays);
     for (let i = 0; i <= markerCount; i++) {
-        const dayOffset = Math.round((i / markerCount) * (totalDays - 2)); // -2 for padding
+        const dayOffset = Math.round((i / markerCount) * (totalDays - 2));
         const date = addDays(minDate, dayOffset);
         dateMarkers.push({
             date,
@@ -53,15 +51,14 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
         });
     }
 
-    // Today marker position
     const todayOffset = differenceInDays(today, minDate);
     const todayPct = todayOffset >= 0 && todayOffset <= totalDays ? (todayOffset / totalDays) * 100 : null;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
             {/* Header row */}
-            <div className="flex border-b border-gray-100 bg-gray-50">
-                <div className="shrink-0 px-4 py-2 text-xs font-medium text-gray-500 uppercase" style={{ width: LABEL_WIDTH }}>
+            <div className="flex border-b border-border-muted bg-surface-alt">
+                <div className="shrink-0 px-4 py-2 text-xs font-medium text-text-muted uppercase" style={{ width: LABEL_WIDTH }}>
                     Task
                 </div>
                 <div className="flex-1 relative h-10">
@@ -71,7 +68,7 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                             className="absolute top-0 h-full flex items-center"
                             style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
                         >
-                            <span className={`text-xs font-medium whitespace-nowrap ${isToday(date) ? 'text-blue-600' : 'text-gray-400'
+                            <span className={`text-xs font-medium whitespace-nowrap ${isToday(date) ? 'text-brand' : 'text-text-faint'
                                 }`}>
                                 {format(date, 'MMM d')}
                             </span>
@@ -87,18 +84,17 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                     {dateMarkers.map(({ pct }, i) => (
                         <div
                             key={i}
-                            className="absolute top-0 bottom-0 border-l border-gray-100"
+                            className="absolute top-0 bottom-0 border-l border-border-muted"
                             style={{ left: `${pct}%` }}
                         />
                     ))}
 
-                    {/* Today marker */}
                     {todayPct !== null && (
                         <div
-                            className="absolute top-0 bottom-0 w-0.5 bg-red-400 z-20"
+                            className="absolute top-0 bottom-0 w-0.5 bg-danger z-20"
                             style={{ left: `${todayPct}%` }}
                         >
-                            <div className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-red-400" />
+                            <div className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-danger" />
                         </div>
                     )}
 
@@ -130,7 +126,7 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                         key={`${task.id}-${succ.id}`}
                                         d={`M ${x1} ${y1} C ${x1 + 2} ${y1}, ${x2 - 2} ${y2}, ${x2} ${y2}`}
                                         fill="none"
-                                        stroke="#d1d5db"
+                                        stroke="var(--color-border)"
                                         strokeWidth="1.5"
                                         vectorEffect="non-scaling-stroke"
                                     />
@@ -151,35 +147,30 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                     const widthPct = (duration / totalDays) * 100;
 
                     const isPast = isBefore(end, today);
-                    const isActive = !isPast && isBefore(start, today);
 
                     return (
                         <div
                             key={task.id}
-                            className={`absolute left-0 right-0 flex ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                            className={`absolute left-0 right-0 flex ${index % 2 === 0 ? 'bg-surface' : 'bg-surface-alt/50'
                                 }`}
                             style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT }}
                         >
-                            {/* Label */}
                             <div
                                 className="shrink-0 px-4 flex flex-col justify-center"
                                 style={{ width: LABEL_WIDTH }}
                             >
-                                <span className={`text-sm font-medium truncate ${isPast ? 'text-gray-400' : 'text-gray-700'
+                                <span className={`text-sm font-medium truncate ${isPast ? 'text-text-faint' : 'text-text'
                                     }`}>
                                     {task.name}
                                 </span>
-                                <span className="text-xs text-gray-400">{duration}d</span>
+                                <span className="text-xs text-text-faint">{duration}d</span>
                             </div>
 
-                            {/* Bar area */}
                             <div className="flex-1 relative">
                                 <div
                                     className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${isPast
-                                        ? 'bg-gray-300'
-                                        : isActive
-                                            ? 'bg-gradient-to-r from-blue-500 to-blue-600'
-                                            : 'bg-gradient-to-r from-blue-400 to-blue-500'
+                                            ? 'bg-text-faint'
+                                            : 'bg-gradient-to-r from-brand to-brand-hover'
                                         }`}
                                     style={{
                                         left: `${leftPct}%`,

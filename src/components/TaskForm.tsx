@@ -12,7 +12,6 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
     const [anchorDate, setAnchorDate] = useState('');
     const [anchorTaskIds, setAnchorTaskIds] = useState<string[]>([]);
 
-    // New task form state
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState(1);
     const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
@@ -39,12 +38,10 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
         const updatedTasks = [...tasks, newTask];
         setTasks(updatedTasks);
 
-        // Reset form
         setNewTaskName('');
         setNewTaskDuration(1);
         setSelectedDependencies([]);
 
-        // Auto-schedule if we have anchors set
         if (anchorDate && anchorTaskIds.length > 0) {
             const anchors: Record<string, string> = {};
             anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
@@ -53,7 +50,6 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
     };
 
     const removeTask = (taskId: string) => {
-        // Remove task and any dependencies on it
         const updatedTasks = tasks
             .filter(t => t.id !== taskId)
             .map(t => ({
@@ -94,27 +90,27 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
     const canSubmit = anchorDate && tasks.length > 0 && anchorTaskIds.length > 0;
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
             {/* Anchor Date Section */}
-            <div className="p-4 border-b border-gray-100 bg-gray-50">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            <div className="p-4 border-b border-border-muted bg-surface-alt">
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">
                     Target Deadline
                 </label>
                 <input
                     type="date"
-                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                     value={anchorDate}
                     onChange={(e) => setAnchorDate(e.target.value)}
                 />
             </div>
 
             {/* Add Task Section */}
-            <div className="p-4 border-b border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Add Task</h3>
+            <div className="p-4 border-b border-border-muted">
+                <h3 className="text-sm font-semibold text-text mb-3">Add Task</h3>
                 <div className="space-y-3">
                     <input
                         placeholder="Task name"
-                        className="w-full border border-gray-200 rounded-lg p-2.5 text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                         value={newTaskName}
                         onChange={(e) => setNewTaskName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && addTask()}
@@ -122,24 +118,23 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
 
                     <div className="flex gap-3">
                         <div className="flex-1">
-                            <label className="block text-xs text-gray-500 mb-1">Duration</label>
+                            <label className="block text-xs text-text-muted mb-1">Duration</label>
                             <div className="flex items-center gap-2">
                                 <input
                                     type="number"
                                     min="1"
-                                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    className="w-full bg-surface border border-border rounded-lg p-2 text-sm text-text focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                                     value={newTaskDuration}
                                     onChange={(e) => setNewTaskDuration(Math.max(1, parseInt(e.target.value) || 1))}
                                 />
-                                <span className="text-xs text-gray-400 whitespace-nowrap">days</span>
+                                <span className="text-xs text-text-faint whitespace-nowrap">days</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Dependency Chips */}
                     {tasks.length > 0 && (
                         <div>
-                            <label className="block text-xs text-gray-500 mb-1.5">Depends on</label>
+                            <label className="block text-xs text-text-muted mb-1.5">Depends on</label>
                             <div className="flex flex-wrap gap-1.5">
                                 {tasks.map(task => (
                                     <button
@@ -147,8 +142,8 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                         type="button"
                                         onClick={() => toggleDependency(task.id)}
                                         className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${selectedDependencies.includes(task.id)
-                                                ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
+                                                : 'bg-surface-alt text-text-muted hover:bg-border'
                                             }`}
                                     >
                                         {task.name}
@@ -162,7 +157,7 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                         type="button"
                         onClick={addTask}
                         disabled={!newTaskName.trim()}
-                        className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="w-full bg-brand text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                         Add Task
                     </button>
@@ -171,13 +166,13 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
 
             {/* Task List */}
             <div className="p-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                <h3 className="text-sm font-semibold text-text mb-3">
                     Tasks
-                    {tasks.length > 0 && <span className="text-gray-400 font-normal ml-1">({tasks.length})</span>}
+                    {tasks.length > 0 && <span className="text-text-faint font-normal ml-1">({tasks.length})</span>}
                 </h3>
 
                 {tasks.length === 0 ? (
-                    <p className="text-sm text-gray-400 italic">No tasks yet. Add your first task above.</p>
+                    <p className="text-sm text-text-faint italic">No tasks yet. Add your first task above.</p>
                 ) : (
                     <ul className="space-y-2">
                         {tasks.map(task => {
@@ -190,22 +185,22 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                 <li
                                     key={task.id}
                                     className={`p-3 rounded-lg border transition-all ${isAnchor
-                                            ? 'border-blue-200 bg-blue-50'
-                                            : 'border-gray-200 bg-gray-50'
+                                            ? 'border-brand/30 bg-brand/5'
+                                            : 'border-border bg-surface-alt'
                                         }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-medium text-sm text-gray-900 truncate">
+                                                <span className="font-medium text-sm text-text truncate">
                                                     {task.name}
                                                 </span>
-                                                <span className="text-xs text-gray-400">
+                                                <span className="text-xs text-text-faint">
                                                     {task.duration_days}d
                                                 </span>
                                             </div>
                                             {deps.length > 0 && (
-                                                <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                                <p className="text-xs text-text-muted mt-0.5 truncate">
                                                     After: {deps.join(', ')}
                                                 </p>
                                             )}
@@ -215,10 +210,10 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                             <button
                                                 type="button"
                                                 onClick={() => toggleAnchor(task.id)}
-                                                title={isAnchor ? 'Remove anchor' : 'Set as anchor (deadline task)'}
+                                                title={isAnchor ? 'Remove anchor' : 'Set as anchor'}
                                                 className={`p-1.5 rounded transition-colors ${isAnchor
-                                                        ? 'text-blue-600 bg-blue-100'
-                                                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'
+                                                        ? 'text-brand bg-brand/10'
+                                                        : 'text-text-faint hover:text-text-muted hover:bg-surface-alt'
                                                     }`}
                                             >
                                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -228,7 +223,7 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                             <button
                                                 type="button"
                                                 onClick={() => removeTask(task.id)}
-                                                className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                className="p-1.5 rounded text-text-faint hover:text-danger hover:bg-danger/10 transition-colors"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -244,16 +239,16 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
             </div>
 
             {/* Submit */}
-            <div className="p-4 border-t border-gray-100 bg-gray-50">
+            <div className="p-4 border-t border-border bg-surface-alt">
                 <button
                     onClick={handleSubmit}
                     disabled={!canSubmit}
-                    className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="w-full bg-text text-surface py-2.5 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                     Calculate Schedule
                 </button>
                 {!canSubmit && tasks.length > 0 && (
-                    <p className="text-xs text-gray-400 text-center mt-2">
+                    <p className="text-xs text-text-faint text-center mt-2">
                         Set a deadline and mark at least one task as an anchor
                     </p>
                 )}

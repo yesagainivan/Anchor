@@ -4,6 +4,7 @@ import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
 import { CalendarView } from "./components/CalendarView";
 import { DeadlineDisplay } from "./components/DeadlineDisplay";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { ScheduleRequest, ScheduledTask, Task } from "./types";
 import "./App.css";
 
@@ -64,12 +65,12 @@ function App() {
       {/* Sidebar */}
       <aside className={`app-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-            Anchor<span className="text-blue-600">.</span>
+          <h1 className="text-xl font-bold text-text tracking-tight">
+            Anchor<span className="text-brand">.</span>
           </h1>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+            className="lg:hidden p-1.5 rounded-lg hover:bg-surface-alt text-text-muted"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -98,24 +99,24 @@ function App() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className={`p-2 rounded-lg hover:bg-gray-100 text-gray-500 ${sidebarOpen ? 'lg:hidden' : ''}`}
+              className={`p-2 rounded-lg hover:bg-surface-alt text-text-muted ${sidebarOpen ? 'lg:hidden' : ''}`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-text">
               {viewMode === 'timeline' ? 'Timeline' : 'Calendar'}
             </h2>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="bg-gray-100 rounded-lg p-1 flex gap-1">
+            <div className="bg-surface-alt rounded-lg p-1 flex gap-1">
               <button
                 onClick={() => setViewMode('timeline')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'timeline'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-surface text-text shadow-sm'
+                    : 'text-text-muted hover:text-text'
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,8 +126,8 @@ function App() {
               <button
                 onClick={() => setViewMode('calendar')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-surface text-text shadow-sm'
+                    : 'text-text-muted hover:text-text'
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,11 +135,12 @@ function App() {
                 </svg>
               </button>
             </div>
+            <ThemeToggle />
           </div>
         </header>
 
         {error && (
-          <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" role="alert">
+          <div className="mx-6 mt-4 bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-lg" role="alert">
             <strong className="font-semibold">Error: </strong>
             <span>{error}</span>
           </div>

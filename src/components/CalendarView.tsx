@@ -3,7 +3,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { ScheduledTask } from '../types';
-import './CalendarView.css'; // We'll create this for specific overrides
+import './CalendarView.css';
 
 interface CalendarViewProps {
     tasks: ScheduledTask[];
@@ -15,12 +15,12 @@ export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
         id: task.id,
         title: task.name,
         start: task.start_date,
-        end: task.end_date, // Note: FullCalendar end date is exclusive, might need adjustment depending on how backend sends it
-        allDay: true // Assuming tasks are day-based for now given the "retro" nature
+        end: task.end_date,
+        allDay: true
     }));
 
     return (
-        <div className="calendar-container bg-white rounded-xl shadow-sm border border-gray-200 p-4 h-[600px]">
+        <div className="calendar-container bg-surface rounded-xl shadow-sm border border-border p-4 h-[600px]">
             <FullCalendar
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
@@ -34,8 +34,6 @@ export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
                 droppable={true}
                 eventDrop={(info) => {
                     if (onTaskMove && info.event.end) {
-                        // FullCalendar end is exclusive, which matches our "Deadline" concept (Start = End - Duration)
-                        // We need to format it as YYYY-MM-DD
                         const date = info.event.end;
                         const year = date.getFullYear();
                         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -45,8 +43,6 @@ export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
                     }
                 }}
                 height="100%"
-                eventColor="#3b82f6" // blue-500
-                eventBorderColor="#2563eb" // blue-600
                 dayMaxEvents={true}
             />
         </div>

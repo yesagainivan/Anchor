@@ -1,14 +1,49 @@
 @import "tailwindcss";
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-}
+/* Enable class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-background: #f9fafb;
-  --color-foreground: #111827;
-  --color-sidebar-bg: #ffffff;
+  /* Brand colors */
+  --color-brand: #3b82f6;
+  --color-brand-hover: #2563eb;
+
+  /* Semantic surface colors */
+  --color-surface: #ffffff;
+  --color-surface-alt: #f9fafb;
+  --color-surface-raised: #ffffff;
+
+  /* Border */
   --color-border: #e5e7eb;
+  --color-border-muted: #f3f4f6;
+
+  /* Text */
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-text-faint: #9ca3af;
+
+  /* Status colors */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+}
+
+/* Dark mode overrides */
+.dark {
+  --color-surface: #1f2937;
+  --color-surface-alt: #111827;
+  --color-surface-raised: #374151;
+
+  --color-border: #374151;
+  --color-border-muted: #1f2937;
+
+  --color-text: #f9fafb;
+  --color-text-muted: #9ca3af;
+  --color-text-faint: #6b7280;
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 /* App Shell - fixed height, no page scroll */
@@ -16,14 +51,14 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background-color: var(--color-background);
+  background-color: var(--color-surface-alt);
 }
 
 /* Sidebar */
 .app-sidebar {
   width: 360px;
   height: 100vh;
-  background: var(--color-sidebar-bg);
+  background: var(--color-surface);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -70,7 +105,7 @@
 
 .main-header {
   padding: 0.75rem 1.5rem;
-  background: var(--color-sidebar-bg);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -115,7 +150,6 @@
 
   .sidebar-content {
     max-height: calc(100vh - 60px);
-    /* Account for header */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -134,19 +168,19 @@
 
 .sidebar-content::-webkit-scrollbar-thumb,
 .main-content::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--color-border);
   border-radius: 3px;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb:hover,
 .main-content::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--color-text-faint);
 }
 
 body {
   margin: 0;
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
 }
 
 html,
