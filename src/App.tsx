@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
@@ -29,25 +29,7 @@ function App() {
     }
   }
 
-  useEffect(() => {
-    const defaultTasks: Task[] = [
-      { id: "1", name: "Product Launch", duration_days: 1, dependencies: ["2"] },
-      { id: "2", name: "Final QA", duration_days: 3, dependencies: ["3"] },
-      { id: "3", name: "Development", duration_days: 10, dependencies: ["4", "5"] },
-      { id: "4", name: "Design", duration_days: 5, dependencies: [] },
-      { id: "5", name: "Backend Setup", duration_days: 7, dependencies: [] },
-      { id: "6", name: "Marketing Campaign", duration_days: 5, dependencies: ["7"] },
-      { id: "7", name: "Create Ad Assets", duration_days: 3, dependencies: [] },
-    ];
-
-    const today = new Date();
-    const nextMonth = new Date(today);
-    nextMonth.setDate(today.getDate() + 30);
-    const dateStr = nextMonth.toISOString().split('T')[0];
-
-    const defaultAnchors = { "1": dateStr, "6": dateStr };
-    handleScheduleInitial({ tasks: defaultTasks, anchors: defaultAnchors });
-  }, []);
+  // App starts clean - no default tasks
 
   const handleScheduleInitial = async (request: ScheduleRequest) => {
     setTasks(request.tasks);
@@ -112,8 +94,8 @@ function App() {
               <button
                 onClick={() => setViewMode('timeline')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'timeline'
-                    ? 'bg-surface text-text shadow-sm'
-                    : 'text-text-muted hover:text-text'
+                  ? 'bg-surface text-text shadow-sm'
+                  : 'text-text-muted hover:text-text'
                   }`}
               >
                 <TimelineIcon />
@@ -121,8 +103,8 @@ function App() {
               <button
                 onClick={() => setViewMode('calendar')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar'
-                    ? 'bg-surface text-text shadow-sm'
-                    : 'text-text-muted hover:text-text'
+                  ? 'bg-surface text-text shadow-sm'
+                  : 'text-text-muted hover:text-text'
                   }`}
               >
                 <CalendarIcon />
