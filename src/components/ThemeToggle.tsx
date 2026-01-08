@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SunIcon, MoonIcon, ComputerIcon } from './icons';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -6,7 +7,6 @@ export function ThemeToggle() {
     const [theme, setTheme] = useState<Theme>('system');
 
     useEffect(() => {
-        // Load saved preference
         const saved = localStorage.getItem('theme') as Theme | null;
         if (saved) {
             setTheme(saved);
@@ -26,7 +26,6 @@ export function ThemeToggle() {
         }
     }, [theme]);
 
-    // Listen for system theme changes when in system mode
     useEffect(() => {
         if (theme !== 'system') return;
 
@@ -46,11 +45,11 @@ export function ThemeToggle() {
         setTheme(next);
     };
 
-    const icon = theme === 'dark'
-        ? '🌙'
+    const Icon = theme === 'dark'
+        ? MoonIcon
         : theme === 'light'
-            ? '☀️'
-            : '💻';
+            ? SunIcon
+            : ComputerIcon;
 
     return (
         <button
@@ -58,7 +57,7 @@ export function ThemeToggle() {
             className="p-2 rounded-lg hover:bg-surface-alt text-text-muted transition-colors"
             title={`Theme: ${theme}`}
         >
-            <span className="text-lg">{icon}</span>
+            <Icon className="w-5 h-5" />
         </button>
     );
 }

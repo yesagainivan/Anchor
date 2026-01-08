@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Task, ScheduleRequest } from '../types';
+import { AnchorIcon, CloseIcon } from './icons';
 
 interface TaskFormProps {
     onSchedule: (request: ScheduleRequest) => void;
@@ -216,18 +217,14 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                                         : 'text-text-faint hover:text-text-muted hover:bg-surface-alt'
                                                     }`}
                                             >
-                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M12 2C11.45 2 11 2.45 11 3V5.07C7.39 5.56 4.56 8.39 4.07 12H2C1.45 12 1 12.45 1 13C1 13.55 1.45 14 2 14H4.07C4.56 17.61 7.39 20.44 11 20.93V22C11 22.55 11.45 23 12 23C12.55 23 13 22.55 13 22V20.93C16.61 20.44 19.44 17.61 19.93 14H22C22.55 14 23 13.55 23 13C23 12.45 22.55 12 22 12H19.93C19.44 8.39 16.61 5.56 13 5.07V3C13 2.45 12.55 2 12 2ZM12 8C14.76 8 17 10.24 17 13C17 15.76 14.76 18 12 18C9.24 18 7 15.76 7 13C7 10.24 9.24 8 12 8Z" />
-                                                </svg>
+                                                <AnchorIcon />
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => removeTask(task.id)}
                                                 className="p-1.5 rounded text-text-faint hover:text-danger hover:bg-danger/10 transition-colors"
                                             >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
+                                                <CloseIcon className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>

@@ -1,0 +1,54 @@
+// Centralized SVG icons as React components
+
+export const SunIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+);
+
+export const MoonIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+);
+
+export const ComputerIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+);
+
+export const MenuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+);
+
+export const CloseIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
+
+export const TimelineIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+);
+
+export const CalendarIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+);
+
+export const AnchorIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2C11.45 2 11 2.45 11 3V5.07C7.39 5.56 4.56 8.39 4.07 12H2C1.45 12 1 12.45 1 13C1 13.55 1.45 14 2 14H4.07C4.56 17.61 7.39 20.44 11 20.93V22C11 22.55 11.45 23 12 23C12.55 23 13 22.55 13 22V20.93C16.61 20.44 19.44 17.61 19.93 14H22C22.55 14 23 13.55 23 13C23 12.45 22.55 12 22 12H19.93C19.44 8.39 16.61 5.56 13 5.07V3C13 2.45 12.55 2 12 2ZM12 8C14.76 8 17 10.24 17 13C17 15.76 14.76 18 12 18C9.24 18 7 15.76 7 13C7 10.24 9.24 8 12 8Z" />
+    </svg>
+);
