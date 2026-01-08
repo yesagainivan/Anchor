@@ -26,6 +26,15 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
         }
     }, [existingTasks, existingAnchors]);
 
+    // Auto-recalculate when anchors change
+    useEffect(() => {
+        if (anchorDate && tasks.length > 0 && anchorTaskIds.length > 0) {
+            const anchors: Record<string, string> = {};
+            anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
+            onSchedule({ tasks, anchors });
+        }
+    }, [anchorDate, anchorTaskIds, tasks, onSchedule]);
+
     const addTask = () => {
         if (!newTaskName.trim()) return;
 
@@ -76,19 +85,6 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                 : [...prev, taskId]
         );
     };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!anchorDate || tasks.length === 0 || anchorTaskIds.length === 0) {
-            return;
-        }
-
-        const anchors: Record<string, string> = {};
-        anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
-        onSchedule({ tasks, anchors });
-    };
-
-    const canSubmit = anchorDate && tasks.length > 0 && anchorTaskIds.length > 0;
 
     return (
         <div className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
@@ -143,8 +139,8 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                         type="button"
                                         onClick={() => toggleDependency(task.id)}
                                         className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${selectedDependencies.includes(task.id)
-                                                ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
-                                                : 'bg-surface-alt text-text-muted hover:bg-border'
+                                            ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
+                                            : 'bg-surface-alt text-text-muted hover:bg-border'
                                             }`}
                                     >
                                         {task.name}
@@ -186,8 +182,8 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                 <li
                                     key={task.id}
                                     className={`p-3 rounded-lg border transition-all ${isAnchor
-                                            ? 'border-brand/30 bg-brand/5'
-                                            : 'border-border bg-surface-alt'
+                                        ? 'border-brand/30 bg-brand/5'
+                                        : 'border-border bg-surface-alt'
                                         }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
@@ -213,8 +209,8 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                                 onClick={() => toggleAnchor(task.id)}
                                                 title={isAnchor ? 'Remove anchor' : 'Set as anchor'}
                                                 className={`p-1.5 rounded transition-colors ${isAnchor
-                                                        ? 'text-brand bg-brand/10'
-                                                        : 'text-text-faint hover:text-text-muted hover:bg-surface-alt'
+                                                    ? 'text-brand bg-brand/10'
+                                                    : 'text-text-faint hover:text-text-muted hover:bg-surface-alt'
                                                     }`}
                                             >
                                                 <AnchorIcon />
@@ -232,22 +228,6 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                             );
                         })}
                     </ul>
-                )}
-            </div>
-
-            {/* Submit */}
-            <div className="p-4 border-t border-border bg-surface-alt">
-                <button
-                    onClick={handleSubmit}
-                    disabled={!canSubmit}
-                    className="w-full bg-text text-surface py-2.5 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                    Calculate Schedule
-                </button>
-                {!canSubmit && tasks.length > 0 && (
-                    <p className="text-xs text-text-faint text-center mt-2">
-                        Set a deadline and mark at least one task as an anchor
-                    </p>
                 )}
             </div>
         </div>
