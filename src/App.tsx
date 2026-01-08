@@ -2,12 +2,14 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
+import { CalendarView } from "./components/CalendarView";
 import { ScheduleRequest, ScheduledTask } from "./types";
 import "./App.css";
 
 function App() {
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
 
   const handleSchedule = async (request: ScheduleRequest) => {
     try {
@@ -40,7 +42,32 @@ function App() {
             <TaskForm onSchedule={handleSchedule} />
           </div>
           <div>
-            <Timeline tasks={scheduledTasks} />
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1.5 flex gap-1 mb-4 w-fit">
+              <button
+                onClick={() => setViewMode('timeline')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${viewMode === 'timeline'
+                    ? 'bg-gray-100 text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                Timeline
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${viewMode === 'calendar'
+                    ? 'bg-gray-100 text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                Calendar
+              </button>
+            </div>
+
+            {viewMode === 'timeline' ? (
+              <Timeline tasks={scheduledTasks} />
+            ) : (
+              <CalendarView tasks={scheduledTasks} />
+            )}
           </div>
         </div>
       </div>
