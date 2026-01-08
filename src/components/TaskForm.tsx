@@ -1,39 +1,29 @@
-import { useState, useEffect } from 'react';
-import { Task, ScheduleRequest } from '../types';
+import { useState } from 'react';
+import { Task } from '../types';
 import { AnchorIcon, CloseIcon } from './icons';
 
 interface TaskFormProps {
-    onSchedule: (request: ScheduleRequest) => void;
-    existingTasks?: Task[];
-    existingAnchors?: Record<string, string>;
+    tasks: Task[];
+    anchorTaskIds: string[];
+    anchorDate: string;
+    onAddTask: (task: Task) => void;
+    onRemoveTask: (taskId: string) => void;
+    onToggleAnchor: (taskId: string) => void;
+    onAnchorDateChange: (date: string) => void;
 }
 
-export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} }: TaskFormProps) {
-    const [tasks, setTasks] = useState<Task[]>(existingTasks);
-    const [anchorDate, setAnchorDate] = useState('');
-    const [anchorTaskIds, setAnchorTaskIds] = useState<string[]>([]);
-
+export function TaskForm({
+    tasks,
+    anchorTaskIds,
+    anchorDate,
+    onAddTask,
+    onRemoveTask,
+    onToggleAnchor,
+    onAnchorDateChange
+}: TaskFormProps) {
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState(1);
     const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
-
-    useEffect(() => {
-        setTasks(existingTasks);
-        const ids = Object.keys(existingAnchors);
-        if (ids.length > 0) {
-            setAnchorTaskIds(ids);
-            setAnchorDate(existingAnchors[ids[0]]);
-        }
-    }, [existingTasks, existingAnchors]);
-
-    // Auto-recalculate when anchors change
-    useEffect(() => {
-        if (anchorDate && tasks.length > 0 && anchorTaskIds.length > 0) {
-            const anchors: Record<string, string> = {};
-            anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
-            onSchedule({ tasks, anchors });
-        }
-    }, [anchorDate, anchorTaskIds, tasks, onSchedule]);
 
     const addTask = () => {
         if (!newTaskName.trim()) return;
@@ -45,37 +35,10 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
             dependencies: selectedDependencies,
         };
 
-        const updatedTasks = [...tasks, newTask];
-        setTasks(updatedTasks);
-
+        onAddTask(newTask);
         setNewTaskName('');
         setNewTaskDuration(1);
         setSelectedDependencies([]);
-
-        if (anchorDate && anchorTaskIds.length > 0) {
-            const anchors: Record<string, string> = {};
-            anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
-            onSchedule({ tasks: updatedTasks, anchors });
-        }
-    };
-
-    const removeTask = (taskId: string) => {
-        const updatedTasks = tasks
-            .filter(t => t.id !== taskId)
-            .map(t => ({
-                ...t,
-                dependencies: t.dependencies.filter(d => d !== taskId)
-            }));
-        setTasks(updatedTasks);
-        setAnchorTaskIds(anchorTaskIds.filter(id => id !== taskId));
-    };
-
-    const toggleAnchor = (taskId: string) => {
-        setAnchorTaskIds(prev =>
-            prev.includes(taskId)
-                ? prev.filter(id => id !== taskId)
-                : [...prev, taskId]
-        );
     };
 
     const toggleDependency = (taskId: string) => {
@@ -97,7 +60,7 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                     type="date"
                     className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                     value={anchorDate}
-                    onChange={(e) => setAnchorDate(e.target.value)}
+                    onChange={(e) => onAnchorDateChange(e.target.value)}
                 />
             </div>
 
@@ -206,7 +169,7 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <button
                                                 type="button"
-                                                onClick={() => toggleAnchor(task.id)}
+                                                onClick={() => onToggleAnchor(task.id)}
                                                 title={isAnchor ? 'Remove anchor' : 'Set as anchor'}
                                                 className={`p-1.5 rounded transition-colors ${isAnchor
                                                     ? 'text-brand bg-brand/10'
@@ -217,7 +180,7 @@ export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} 
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => removeTask(task.id)}
+                                                onClick={() => onRemoveTask(task.id)}
                                                 className="p-1.5 rounded text-text-faint hover:text-danger hover:bg-danger/10 transition-colors"
                                             >
                                                 <CloseIcon className="w-4 h-4" />

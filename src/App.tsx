@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
@@ -6,42 +6,76 @@ import { CalendarView } from "./components/CalendarView";
 import { DeadlineDisplay } from "./components/DeadlineDisplay";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { MenuIcon, CloseIcon, TimelineIcon, CalendarIcon } from "./components/icons";
-import { ScheduleRequest, ScheduledTask, Task } from "./types";
+import { ScheduledTask, Task } from "./types";
 import "./App.css";
 
 function App() {
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [anchors, setAnchors] = useState<Record<string, string>>({});
+  const [anchorTaskIds, setAnchorTaskIds] = useState<string[]>([]);
+  const [anchorDate, setAnchorDate] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const calculateSchedule = async (currentTasks: Task[], currentAnchors: Record<string, string>) => {
+  const calculateSchedule = useCallback(async (currentTasks: Task[], currentAnchorIds: string[], currentAnchorDate: string) => {
+    if (currentTasks.length === 0 || currentAnchorIds.length === 0 || !currentAnchorDate) {
+      setScheduledTasks([]);
+      return;
+    }
     try {
-      const request: ScheduleRequest = { tasks: currentTasks, anchors: currentAnchors };
-      const result = await invoke<ScheduledTask[]>("schedule", { request });
+      const anchors: Record<string, string> = {};
+      currentAnchorIds.forEach(id => { anchors[id] = currentAnchorDate; });
+      const result = await invoke<ScheduledTask[]>("schedule", { request: { tasks: currentTasks, anchors } });
       setScheduledTasks(result);
       setError(null);
     } catch (e) {
       console.error(e);
       setError(typeof e === 'string' ? e : "An unexpected error occurred");
     }
-  }
+  }, []);
 
-  // App starts clean - no default tasks
+  // Handlers passed to TaskForm
+  const handleAddTask = useCallback((task: Task) => {
+    const newTasks = [...tasks, task];
+    setTasks(newTasks);
+    calculateSchedule(newTasks, anchorTaskIds, anchorDate);
+  }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
 
-  const handleScheduleInitial = async (request: ScheduleRequest) => {
-    setTasks(request.tasks);
-    setAnchors(request.anchors);
-    await calculateSchedule(request.tasks, request.anchors);
-  };
+  const handleRemoveTask = useCallback((taskId: string) => {
+    const newTasks = tasks
+      .filter(t => t.id !== taskId)
+      .map(t => ({ ...t, dependencies: t.dependencies.filter(d => d !== taskId) }));
+    const newAnchorIds = anchorTaskIds.filter(id => id !== taskId);
+    setTasks(newTasks);
+    setAnchorTaskIds(newAnchorIds);
+    calculateSchedule(newTasks, newAnchorIds, anchorDate);
+  }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
 
-  const handleTaskMove = async (taskId: string, newDate: string) => {
-    const newAnchors = { ...anchors, [taskId]: newDate };
-    setAnchors(newAnchors);
-    await calculateSchedule(tasks, newAnchors);
-  };
+  const handleToggleAnchor = useCallback((taskId: string) => {
+    const newAnchorIds = anchorTaskIds.includes(taskId)
+      ? anchorTaskIds.filter(id => id !== taskId)
+      : [...anchorTaskIds, taskId];
+    setAnchorTaskIds(newAnchorIds);
+    calculateSchedule(tasks, newAnchorIds, anchorDate);
+  }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
+
+  const handleAnchorDateChange = useCallback((date: string) => {
+    setAnchorDate(date);
+    calculateSchedule(tasks, anchorTaskIds, date);
+  }, [tasks, anchorTaskIds, calculateSchedule]);
+
+  const handleTaskMove = useCallback(async (taskId: string, newDate: string) => {
+    // When moving a task, anchor it to the new date
+    const newAnchorIds = anchorTaskIds.includes(taskId) ? anchorTaskIds : [...anchorTaskIds, taskId];
+    setAnchorTaskIds(newAnchorIds);
+    setAnchorDate(newDate);
+    calculateSchedule(tasks, newAnchorIds, newDate);
+  }, [tasks, anchorTaskIds, calculateSchedule]);
+
+  // Build anchors object for components that need it
+  const anchors: Record<string, string> = {};
+  anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
 
   return (
     <div className="app-shell">
@@ -61,7 +95,15 @@ function App() {
 
         <div className="sidebar-content">
           <DeadlineDisplay anchors={anchors} />
-          <TaskForm onSchedule={handleScheduleInitial} existingTasks={tasks} existingAnchors={anchors} />
+          <TaskForm
+            tasks={tasks}
+            anchorTaskIds={anchorTaskIds}
+            anchorDate={anchorDate}
+            onAddTask={handleAddTask}
+            onRemoveTask={handleRemoveTask}
+            onToggleAnchor={handleToggleAnchor}
+            onAnchorDateChange={handleAnchorDateChange}
+          />
         </div>
       </aside>
 
