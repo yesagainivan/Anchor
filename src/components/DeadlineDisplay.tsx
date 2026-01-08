@@ -5,7 +5,7 @@ interface DeadlineDisplayProps {
 }
 
 export function DeadlineDisplay({ anchors }: DeadlineDisplayProps) {
-    const anchorDates = Object.values(anchors);
+    const anchorDates = Object.values(anchors).filter(Boolean);
     if (anchorDates.length === 0) return null;
 
     const dates = anchorDates.map(d => parseISO(d));

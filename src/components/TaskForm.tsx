@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Task } from '../types';
-import { AnchorIcon, CloseIcon } from './icons';
+import { AnchorIcon, CloseIcon, EditIcon } from './icons';
 
 interface TaskFormProps {
     tasks: Task[];
@@ -10,6 +10,7 @@ interface TaskFormProps {
     onRemoveTask: (taskId: string) => void;
     onToggleAnchor: (taskId: string) => void;
     onAnchorDateChange: (date: string) => void;
+    onEditTask: (task: Task) => void;
 }
 
 export function TaskForm({
@@ -19,23 +20,50 @@ export function TaskForm({
     onAddTask,
     onRemoveTask,
     onToggleAnchor,
-    onAnchorDateChange
+    onAnchorDateChange,
+    onEditTask
 }: TaskFormProps) {
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState(1);
     const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
+    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-    const addTask = () => {
+    const handleSubmit = () => {
         if (!newTaskName.trim()) return;
 
-        const newTask: Task = {
-            id: crypto.randomUUID(),
-            name: newTaskName.trim(),
-            duration_days: newTaskDuration,
-            dependencies: selectedDependencies,
-        };
+        if (editingTaskId) {
+            const updatedTask: Task = {
+                id: editingTaskId,
+                name: newTaskName.trim(),
+                duration_days: newTaskDuration,
+                dependencies: selectedDependencies,
+            };
+            onEditTask(updatedTask);
+            setEditingTaskId(null);
+        } else {
+            const newTask: Task = {
+                id: crypto.randomUUID(),
+                name: newTaskName.trim(),
+                duration_days: newTaskDuration,
+                dependencies: selectedDependencies,
+            };
+            onAddTask(newTask);
+        }
 
-        onAddTask(newTask);
+        setNewTaskName('');
+        setNewTaskDuration(1);
+        setSelectedDependencies([]);
+    };
+
+    const handleStartEdit = (task: Task) => {
+        setEditingTaskId(task.id);
+        setNewTaskName(task.name);
+        setNewTaskDuration(task.duration_days);
+        setSelectedDependencies(task.dependencies);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingTaskId(null);
         setNewTaskName('');
         setNewTaskDuration(1);
         setSelectedDependencies([]);
@@ -64,16 +92,18 @@ export function TaskForm({
                 />
             </div>
 
-            {/* Add Task Section */}
+            {/* Add/Edit Task Section */}
             <div className="p-4 border-b border-border-muted">
-                <h3 className="text-sm font-semibold text-text mb-3">Add Task</h3>
+                <h3 className="text-sm font-semibold text-text mb-3">
+                    {editingTaskId ? 'Edit Task' : 'Add Task'}
+                </h3>
                 <div className="space-y-3">
                     <input
                         placeholder="Task name"
                         className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                         value={newTaskName}
                         onChange={(e) => setNewTaskName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && addTask()}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                     />
 
                     <div className="flex gap-3">
@@ -96,31 +126,44 @@ export function TaskForm({
                         <div>
                             <label className="block text-xs text-text-muted mb-1.5">Depends on</label>
                             <div className="flex flex-wrap gap-1.5">
-                                {tasks.map(task => (
-                                    <button
-                                        key={task.id}
-                                        type="button"
-                                        onClick={() => toggleDependency(task.id)}
-                                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${selectedDependencies.includes(task.id)
-                                            ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
-                                            : 'bg-surface-alt text-text-muted hover:bg-border'
-                                            }`}
-                                    >
-                                        {task.name}
-                                    </button>
-                                ))}
+                                {tasks
+                                    .filter(task => task.id !== editingTaskId) // Prevent self-dependency
+                                    .map(task => (
+                                        <button
+                                            key={task.id}
+                                            type="button"
+                                            onClick={() => toggleDependency(task.id)}
+                                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${selectedDependencies.includes(task.id)
+                                                ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
+                                                : 'bg-surface-alt text-text-muted hover:bg-border'
+                                                }`}
+                                        >
+                                            {task.name}
+                                        </button>
+                                    ))}
                             </div>
                         </div>
                     )}
 
-                    <button
-                        type="button"
-                        onClick={addTask}
-                        disabled={!newTaskName.trim()}
-                        className="w-full bg-brand text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                        Add Task
-                    </button>
+                    <div className="flex gap-2">
+                        {editingTaskId && (
+                            <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                className="flex-1 bg-surface-alt text-text-muted py-2 rounded-lg text-sm font-medium hover:bg-border transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={!newTaskName.trim()}
+                            className={`flex-1 bg-brand text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors`}
+                        >
+                            {editingTaskId ? 'Update Task' : 'Add Task'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -177,6 +220,14 @@ export function TaskForm({
                                                     }`}
                                             >
                                                 <AnchorIcon />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleStartEdit(task)}
+                                                className="p-1.5 rounded text-text-faint hover:text-brand hover:bg-brand/10 transition-colors"
+                                                title="Edit task"
+                                            >
+                                                <EditIcon />
                                             </button>
                                             <button
                                                 type="button"

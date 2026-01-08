@@ -57,7 +57,22 @@ function App() {
       ? anchorTaskIds.filter(id => id !== taskId)
       : [...anchorTaskIds, taskId];
     setAnchorTaskIds(newAnchorIds);
-    calculateSchedule(tasks, newAnchorIds, anchorDate);
+
+    // If we're adding an anchor and no date is set, default to today
+    let effectiveDate = anchorDate;
+    if (newAnchorIds.length > 0 && !anchorDate) {
+      effectiveDate = new Date().toISOString().split('T')[0];
+      setAnchorDate(effectiveDate);
+    }
+
+    calculateSchedule(tasks, newAnchorIds, effectiveDate);
+  }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
+
+  const handleEditTask = useCallback((updatedTask: Task) => {
+    const newTasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+    setTasks(newTasks);
+    // calculate schedule only needs updated tasks list
+    calculateSchedule(newTasks, anchorTaskIds, anchorDate);
   }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
 
   const handleAnchorDateChange = useCallback((date: string) => {
@@ -103,6 +118,7 @@ function App() {
             onRemoveTask={handleRemoveTask}
             onToggleAnchor={handleToggleAnchor}
             onAnchorDateChange={handleAnchorDateChange}
+            onEditTask={handleEditTask}
           />
         </div>
       </aside>
