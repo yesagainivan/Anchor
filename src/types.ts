@@ -14,6 +14,5 @@ export interface ScheduledTask {
 
 export interface ScheduleRequest {
     tasks: Task[];
-    anchor_date: string;
-    anchor_task_ids: string[];
+    anchors: Record<string, string>; // TaskId -> YYYY-MM-DD
 }

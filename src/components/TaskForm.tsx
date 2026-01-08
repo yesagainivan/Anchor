@@ -1,34 +1,64 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Task, ScheduleRequest } from '../types';
 
 interface TaskFormProps {
     onSchedule: (request: ScheduleRequest) => void;
+    existingTasks?: Task[];
+    existingAnchors?: Record<string, string>;
 }
 
-export function TaskForm({ onSchedule }: TaskFormProps) {
-    const [tasks, setTasks] = useState<Task[]>([]);
+export function TaskForm({ onSchedule, existingTasks = [], existingAnchors = {} }: TaskFormProps) {
+    const [tasks, setTasks] = useState<Task[]>(existingTasks);
     const [anchorDate, setAnchorDate] = useState('');
 
     // New task state
     const [newTaskName, setNewTaskName] = useState('');
+
+    useEffect(() => {
+        setTasks(existingTasks);
+        const anchorIds = Object.keys(existingAnchors);
+        if (anchorIds.length > 0) {
+            setAnchorTaskIds(anchorIds);
+            setAnchorDate(existingAnchors[anchorIds[0]]);
+        }
+    }, [existingTasks, existingAnchors]);
     const [newTaskDuration, setNewTaskDuration] = useState(1);
     const [newTaskDependencies, setNewTaskDependencies] = useState<string[]>([]);
+    const [newTaskPrerequisiteFor, setNewTaskPrerequisiteFor] = useState<string[]>([]); // "Reverse" dependencies
 
     // Tasks that are "anchored" (roots of the reverse tree)
     const [anchorTaskIds, setAnchorTaskIds] = useState<string[]>([]);
 
     const addTask = () => {
         if (!newTaskName) return;
+        const newTaskId = crypto.randomUUID();
         const newTask: Task = {
-            id: crypto.randomUUID(),
+            id: newTaskId,
             name: newTaskName,
             duration_days: newTaskDuration,
             dependencies: newTaskDependencies,
         };
-        setTasks([...tasks, newTask]);
+
+        // If this new task is a prerequisite for existing tasks (e.g. Research is Prereq for Design),
+        // we must update "Design" to include "Research" (newTaskId) in its dependencies.
+        let updatedTasks = [...tasks, newTask];
+        if (newTaskPrerequisiteFor.length > 0) {
+            updatedTasks = updatedTasks.map(t => {
+                if (newTaskPrerequisiteFor.includes(t.id)) {
+                    return {
+                        ...t,
+                        dependencies: [...t.dependencies, newTaskId]
+                    };
+                }
+                return t;
+            });
+        }
+
+        setTasks(updatedTasks);
         setNewTaskName('');
         setNewTaskDuration(1);
         setNewTaskDependencies([]);
+        setNewTaskPrerequisiteFor([]);
     };
 
     const toggleAnchorData = (taskId: string) => {
@@ -45,10 +75,16 @@ export function TaskForm({ onSchedule }: TaskFormProps) {
             alert("Please set an anchor date, add tasks, and select at least one anchor task.");
             return;
         }
+
+        // Convert legacy form state to new anchors map
+        const anchors: Record<string, string> = {};
+        anchorTaskIds.forEach(id => {
+            anchors[id] = anchorDate;
+        });
+
         onSchedule({
             tasks,
-            anchor_date: anchorDate,
-            anchor_task_ids: anchorTaskIds,
+            anchors,
         });
     };
 
@@ -89,22 +125,41 @@ export function TaskForm({ onSchedule }: TaskFormProps) {
                     </div>
                     {/* Simple dependency selector */}
                     {tasks.length > 0 && (
-                        <div>
-                            <label className="text-xs">Prerequisites (Must finish before this starts)</label>
-                            <select
-                                multiple
-                                className="w-full border p-2 rounded h-24"
-                                value={newTaskDependencies}
-                                onChange={(e) => {
-                                    const selected = Array.from(e.target.selectedOptions, option => option.value);
-                                    setNewTaskDependencies(selected);
-                                }}
-                            >
-                                {tasks.map(t => (
-                                    <option key={t.id} value={t.id}>{t.name}</option>
-                                ))}
-                            </select>
-                            <p className="text-xs text-gray-500">Cmd/Ctrl+Click to select multiple</p>
+                        <div className="grid grid-cols-1 gap-2">
+                            <div>
+                                <label className="text-xs font-semibold">Prerequisites (Must finish BEFORE this starts)</label>
+                                <select
+                                    multiple
+                                    className="w-full border p-2 rounded h-20 text-sm"
+                                    value={newTaskDependencies}
+                                    onChange={(e) => {
+                                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                        setNewTaskDependencies(selected);
+                                    }}
+                                >
+                                    {tasks.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-semibold text-blue-600">Is Prerequisite For (Must finish BEFORE these start)</label>
+                                <div className="text-[10px] text-gray-500 mb-1">Use this to insert tasks *before* existing ones (e.g. Research before Design)</div>
+                                <select
+                                    multiple
+                                    className="w-full border p-2 rounded h-20 text-sm"
+                                    value={newTaskPrerequisiteFor}
+                                    onChange={(e) => {
+                                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                        setNewTaskPrerequisiteFor(selected);
+                                    }}
+                                >
+                                    {tasks.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     )}
                     <button
