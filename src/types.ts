@@ -16,3 +16,20 @@ export interface ScheduleRequest {
     tasks: Task[];
     anchors: Record<string, string>; // TaskId -> YYYY-MM-DD
 }
+
+export interface Project {
+    id: string;
+    name: string;
+    created_at: string;
+    last_modified: string;
+    tasks: Task[];
+    anchors: Record<string, string>;
+}
+
+export interface ProjectMetadata {
+    id: string;
+    name: string;
+    created_at: string;
+    last_modified: string;
+    task_count: number;
+}

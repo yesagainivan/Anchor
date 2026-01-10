@@ -3,6 +3,7 @@
 //! A Tauri application that helps you plan projects by working backwards
 //! from deadlines to determine when you need to start.
 
+mod project;
 mod scheduler;
 
 use scheduler::calculate_backwards_schedule;
@@ -17,7 +18,14 @@ fn schedule(request: ScheduleRequest) -> Result<Vec<ScheduledTask>, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![schedule])
+        .invoke_handler(tauri::generate_handler![
+            schedule,
+            project::create_project,
+            project::load_project,
+            project::save_project,
+            project::list_projects,
+            project::delete_project
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

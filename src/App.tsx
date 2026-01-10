@@ -1,104 +1,77 @@
 import { useState, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
 import { CalendarView } from "./components/CalendarView";
 import { DeadlineDisplay } from "./components/DeadlineDisplay";
 import { ThemeToggle } from "./components/ThemeToggle";
-import { MenuIcon, CloseIcon, TimelineIcon, CalendarIcon } from "./components/icons";
-import { ScheduledTask, Task } from "./types";
+import { ProjectDashboard } from "./components/ProjectDashboard";
+import { MenuIcon, CloseIcon, TimelineIcon, CalendarIcon, BackIcon } from "./components/icons";
+import { useProject } from "./hooks/useProject";
 import "./App.css";
 
 function App() {
-  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [anchorTaskIds, setAnchorTaskIds] = useState<string[]>([]);
-  const [anchorDate, setAnchorDate] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const {
+    project,
+    scheduledTasks,
+    loading,
+    error,
+    anchorDate,
+    setAnchorDate,
+    addTask,
+    removeTask,
+    editTask,
+    toggleAnchor,
+    anchorTaskIds
+  } = useProject(activeProjectId);
+
   const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const calculateSchedule = useCallback(async (currentTasks: Task[], currentAnchorIds: string[], currentAnchorDate: string) => {
-    if (currentTasks.length === 0 || currentAnchorIds.length === 0 || !currentAnchorDate) {
-      setScheduledTasks([]);
-      return;
-    }
-    try {
-      const anchors: Record<string, string> = {};
-      currentAnchorIds.forEach(id => { anchors[id] = currentAnchorDate; });
-      const result = await invoke<ScheduledTask[]>("schedule", { request: { tasks: currentTasks, anchors } });
-      setScheduledTasks(result);
-      setError(null);
-    } catch (e) {
-      console.error(e);
-      setError(typeof e === 'string' ? e : "An unexpected error occurred");
-    }
-  }, []);
-
-  // Handlers passed to TaskForm
-  const handleAddTask = useCallback((task: Task) => {
-    const newTasks = [...tasks, task];
-    setTasks(newTasks);
-    calculateSchedule(newTasks, anchorTaskIds, anchorDate);
-  }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
-
-  const handleRemoveTask = useCallback((taskId: string) => {
-    const newTasks = tasks
-      .filter(t => t.id !== taskId)
-      .map(t => ({ ...t, dependencies: t.dependencies.filter(d => d !== taskId) }));
-    const newAnchorIds = anchorTaskIds.filter(id => id !== taskId);
-    setTasks(newTasks);
-    setAnchorTaskIds(newAnchorIds);
-    calculateSchedule(newTasks, newAnchorIds, anchorDate);
-  }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
-
-  const handleToggleAnchor = useCallback((taskId: string) => {
-    const newAnchorIds = anchorTaskIds.includes(taskId)
-      ? anchorTaskIds.filter(id => id !== taskId)
-      : [...anchorTaskIds, taskId];
-    setAnchorTaskIds(newAnchorIds);
-
-    // If we're adding an anchor and no date is set, default to today
-    let effectiveDate = anchorDate;
-    if (newAnchorIds.length > 0 && !anchorDate) {
-      effectiveDate = new Date().toISOString().split('T')[0];
-      setAnchorDate(effectiveDate);
-    }
-
-    calculateSchedule(tasks, newAnchorIds, effectiveDate);
-  }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
-
-  const handleEditTask = useCallback((updatedTask: Task) => {
-    const newTasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
-    setTasks(newTasks);
-    // calculate schedule only needs updated tasks list
-    calculateSchedule(newTasks, anchorTaskIds, anchorDate);
-  }, [tasks, anchorTaskIds, anchorDate, calculateSchedule]);
-
-  const handleAnchorDateChange = useCallback((date: string) => {
-    setAnchorDate(date);
-    calculateSchedule(tasks, anchorTaskIds, date);
-  }, [tasks, anchorTaskIds, calculateSchedule]);
-
   const handleTaskMove = useCallback(async (taskId: string, newDate: string) => {
     // When moving a task, anchor it to the new date
-    const newAnchorIds = anchorTaskIds.includes(taskId) ? anchorTaskIds : [...anchorTaskIds, taskId];
-    setAnchorTaskIds(newAnchorIds);
+    // toggleAnchor logic needs to handle this specific case of setting a specific date
+    // But for now, let's adapt:
+    // This part requires us to update the anchor date in the hook
     setAnchorDate(newDate);
-    calculateSchedule(tasks, newAnchorIds, newDate);
-  }, [tasks, anchorTaskIds, calculateSchedule]);
+    // And ensure the task is anchored
+    if (!anchorTaskIds.includes(taskId)) {
+      toggleAnchor(taskId);
+    }
+  }, [toggleAnchor, anchorTaskIds, setAnchorDate]);
+
+  if (!activeProjectId) {
+    return <ProjectDashboard onOpenProject={setActiveProjectId} />;
+  }
+
+  if (loading && !project) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-surface-alt">
+        <div className="text-text-muted">Loading project...</div>
+      </div>
+    );
+  }
 
   // Build anchors object for components that need it
   const anchors: Record<string, string> = {};
   anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
+
+  const tasks = project?.tasks || [];
 
   return (
     <div className="app-shell">
       {/* Sidebar */}
       <aside className={`app-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <h1 className="text-xl font-bold text-text tracking-tight">
-            Anchor<span className="text-brand">.</span>
+          <button
+            onClick={() => setActiveProjectId(null)}
+            className="p-1.5 -ml-2 mr-2 rounded-lg hover:bg-surface-alt text-text-muted"
+            title="Back to Dashboard"
+          >
+            <BackIcon />
+          </button>
+          <h1 className="text-xl font-bold text-text tracking-tight truncate flex-1">
+            {project?.name || "Anchor"}
           </h1>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -114,11 +87,11 @@ function App() {
             tasks={tasks}
             anchorTaskIds={anchorTaskIds}
             anchorDate={anchorDate}
-            onAddTask={handleAddTask}
-            onRemoveTask={handleRemoveTask}
-            onToggleAnchor={handleToggleAnchor}
-            onAnchorDateChange={handleAnchorDateChange}
-            onEditTask={handleEditTask}
+            onAddTask={addTask}
+            onRemoveTask={removeTask}
+            onToggleAnchor={toggleAnchor}
+            onAnchorDateChange={setAnchorDate}
+            onEditTask={editTask}
           />
         </div>
       </aside>
