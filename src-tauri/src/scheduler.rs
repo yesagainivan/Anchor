@@ -16,6 +16,8 @@ pub struct Task {
     pub duration_days: i64,
     /// IDs of tasks that must complete before this one can start.
     pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub completed: bool,
 }
 
 /// A scheduled task with computed start and end dates.
@@ -25,6 +27,7 @@ pub struct ScheduledTask {
     pub name: String,
     pub start_date: String,
     pub end_date: String,
+    pub completed: bool,
 }
 
 /// Request to calculate a backwards schedule.
@@ -126,6 +129,7 @@ pub fn calculate_backwards_schedule(
             name: task.name.clone(),
             start_date: start_date.to_string(),
             end_date: end_date.to_string(),
+            completed: task.completed,
         });
 
         // Propagate to dependencies (providers)
@@ -164,12 +168,14 @@ mod tests {
                     name: "Task A".into(),
                     duration_days: 5,
                     dependencies: vec![],
+                    completed: false,
                 },
                 Task {
                     id: "b".into(),
                     name: "Task B".into(),
                     duration_days: 3,
                     dependencies: vec!["a".into()],
+                    completed: false,
                 },
             ],
             anchors: [("b".into(), "2026-01-15".into())].into(),

@@ -145,9 +145,10 @@ pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
                         };
 
                         if let Ok(schedule) = crate::scheduler::calculate_backwards_schedule(req) {
-                            // Find active or next upcoming task
+                            // Find active or next upcoming task (excluding completed ones)
                             let mut active_or_upcoming = schedule
                                 .iter()
+                                .filter(|t| !t.completed)
                                 .filter_map(|t| {
                                     let start = chrono::NaiveDate::parse_from_str(
                                         &t.start_date,

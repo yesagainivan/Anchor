@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Task } from '../types';
-import { AnchorIcon, CloseIcon, EditIcon } from './icons';
+import { AnchorIcon, CloseIcon, EditIcon, CheckIcon } from './icons';
 
 interface TaskFormProps {
     tasks: Task[];
@@ -32,11 +32,13 @@ export function TaskForm({
         if (!newTaskName.trim()) return;
 
         if (editingTaskId) {
+            const originalTask = tasks.find(t => t.id === editingTaskId);
             const updatedTask: Task = {
                 id: editingTaskId,
                 name: newTaskName.trim(),
                 duration_days: newTaskDuration,
                 dependencies: selectedDependencies,
+                completed: originalTask?.completed || false,
             };
             onEditTask(updatedTask);
             setEditingTaskId(null);
@@ -184,29 +186,51 @@ export function TaskForm({
                                 .map(d => tasks.find(t => t.id === d)?.name)
                                 .filter(Boolean);
 
+                            // Toggle completion handler
+                            const toggleCompletion = () => {
+                                onEditTask({
+                                    ...task,
+                                    completed: !task.completed
+                                });
+                            };
+
                             return (
                                 <li
                                     key={task.id}
                                     className={`p-3 rounded-lg border transition-all ${isAnchor
                                         ? 'border-brand/30 bg-brand/5'
                                         : 'border-border bg-surface-alt'
-                                        }`}
+                                        } ${task.completed ? 'opacity-60' : ''}`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-sm text-text truncate">
-                                                    {task.name}
-                                                </span>
-                                                <span className="text-xs text-text-faint">
-                                                    {task.duration_days}d
-                                                </span>
+                                        <div className="flex-1 min-w-0 flex items-start gap-3">
+                                            {/* Completion Toggle */}
+                                            <button
+                                                type="button"
+                                                onClick={toggleCompletion}
+                                                className={`mt-0.5 shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${task.completed
+                                                    ? 'bg-success border-success text-white'
+                                                    : 'bg-surface border-text-muted/40 hover:border-brand'
+                                                    }`}
+                                            >
+                                                {task.completed && <CheckIcon className="w-3.5 h-3.5" />}
+                                            </button>
+
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-medium text-sm truncate ${task.completed ? 'text-text-muted line-through' : 'text-text'}`}>
+                                                        {task.name}
+                                                    </span>
+                                                    <span className="text-xs text-text-faint">
+                                                        {task.duration_days}d
+                                                    </span>
+                                                </div>
+                                                {deps.length > 0 && (
+                                                    <p className={`text-xs text-text-muted mt-0.5 truncate ${task.completed ? 'line-through opacity-70' : ''}`}>
+                                                        After: {deps.join(', ')}
+                                                    </p>
+                                                )}
                                             </div>
-                                            {deps.length > 0 && (
-                                                <p className="text-xs text-text-muted mt-0.5 truncate">
-                                                    After: {deps.join(', ')}
-                                                </p>
-                                            )}
                                         </div>
 
                                         <div className="flex items-center gap-1.5 shrink-0">

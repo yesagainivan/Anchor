@@ -3,6 +3,7 @@ export interface Task {
     name: string;
     duration_days: number;
     dependencies: string[];
+    completed?: boolean;
 }
 
 export interface ScheduledTask {
@@ -10,6 +11,7 @@ export interface ScheduledTask {
     name: string;
     start_date: string;
     end_date: string;
+    completed: boolean;
 }
 
 export interface ScheduleRequest {

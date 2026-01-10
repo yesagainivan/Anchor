@@ -45,9 +45,50 @@ Week/Month view for long projects.
 - [ ] Fit-to-view option
 - [ ] Persist zoom preference
 
+## 📝 Wishlist
+
+### The Simulation Approach (Desktop "Widgets")
+If we want a "widget" that floats on the desktop (similar to Rainmeter or old-school dashboard widgets), it might be much easier to simulate this by creating a specialized Tauri window.
+
+#### Step 1: Configure the Window
+In your tauri.conf.json, you can define a window that is transparent, has no borders, and doesn't show up in the dock.
+
+```JSON
+{
+  "tauri": {
+    "windows": [
+      {
+        "label": "widget",
+        "url": "index.html",
+        "transparent": true,
+        "decorations": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": false,
+        "resizable": false
+      }
+    ],
+    "macosPrivateApi": true 
+  }
+}
+```
+Note: macosPrivateApi is often needed for advanced transparency/vibrancy effects.
+
+#### Step 2: Stick it to the Desktop
+To make it feel like a real widget that sits behind your windows but above the wallpaper, you can use the community plugin tauri-plugin-desktop-underlay. This plugin allows you to:
+
+Pin the window to the desktop level.
+
+Ensure it stays visible when you use "Show Desktop" (Exposé).
+
+#### Step 3: Add Visual Polish
+To get that "frosted glass" macOS look, use a vibrancy plugin or the newer tauri-plugin-liquid-glass.
+
 ---
 
 ## 💡 Nice to Have
+
+### Add a note system for tasks 
+*to be designed*
 
 ### Milestone Markers
 Visual celebration of key dates.

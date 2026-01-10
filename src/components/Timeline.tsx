@@ -95,7 +95,14 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                 {/* Header row */}
                 <div className="flex border-b border-border-muted bg-surface-alt">
                     <div className="shrink-0 px-4 py-2 flex items-center justify-between" style={{ width: LABEL_WIDTH }}>
-                        <span className="text-xs font-medium text-text-muted uppercase">Task</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-text-muted uppercase">Task</span>
+                            {tasks.length > 0 && (
+                                <span className="text-[10px] font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full">
+                                    {Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100)}%
+                                </span>
+                            )}
+                        </div>
                         <button
                             onClick={() => setShowToday(!showToday)}
                             title={showToday ? 'Hide buffer to today' : 'Show buffer from today'}
@@ -227,9 +234,10 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
 
                                 <div className="flex-1 relative">
                                     <div
-                                        className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${isPast
-                                            ? 'bg-text-faint'
-                                            : 'bg-gradient-to-r from-brand to-brand-hover'
+                                        className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${task.completed ? 'bg-success opacity-90' :
+                                            isPast
+                                                ? 'bg-text-faint'
+                                                : 'bg-gradient-to-r from-brand to-brand-hover'
                                             }`}
                                         style={{
                                             left: `${leftPct}%`,
