@@ -147,6 +147,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--color-surface);
 }
 
 /* Drag and Drop overrides */

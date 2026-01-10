@@ -1,16 +1,19 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
 import { CalendarView } from "./components/CalendarView";
 import { DeadlineDisplay } from "./components/DeadlineDisplay";
-import { ThemeToggle } from "./components/ThemeToggle";
+import { ThemeToggle, Theme } from "./components/ThemeToggle";
 import { ProjectDashboard } from "./components/ProjectDashboard";
 import { MenuIcon, CloseIcon, TimelineIcon, CalendarIcon, BackIcon } from "./components/icons";
 import { useProject } from "./hooks/useProject";
+import { useConfig } from "./hooks/useConfig";
 import "./App.css";
 
 function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const { theme, setTheme, loaded: configLoaded } = useConfig();
+
   const {
     project,
     scheduledTasks,
@@ -28,11 +31,26 @@ function App() {
   const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // Apply theme to DOM
+  useEffect(() => {
+    if (!configLoaded) return;
+
+    const root = document.documentElement;
+    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    root.classList.toggle('dark', isDark);
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = (e: MediaQueryListEvent) => {
+        root.classList.toggle('dark', e.matches);
+      };
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    }
+  }, [theme, configLoaded]);
+
   const handleTaskMove = useCallback(async (taskId: string, newDate: string) => {
     // When moving a task, anchor it to the new date
-    // toggleAnchor logic needs to handle this specific case of setting a specific date
-    // But for now, let's adapt:
-    // This part requires us to update the anchor date in the hook
     setAnchorDate(newDate);
     // And ensure the task is anchored
     if (!anchorTaskIds.includes(taskId)) {
@@ -40,8 +58,18 @@ function App() {
     }
   }, [toggleAnchor, anchorTaskIds, setAnchorDate]);
 
+  if (!configLoaded) {
+    return null; // Or a loading spinner
+  }
+
   if (!activeProjectId) {
-    return <ProjectDashboard onOpenProject={setActiveProjectId} />;
+    return (
+      <ProjectDashboard
+        onOpenProject={setActiveProjectId}
+        theme={theme as Theme}
+        onThemeChange={(t) => setTheme(t)}
+      />
+    );
   }
 
   if (loading && !project) {
@@ -141,7 +169,7 @@ function App() {
                 <CalendarIcon />
               </button>
             </div>
-            <ThemeToggle />
+            <ThemeToggle theme={theme as Theme} onThemeChange={(t) => setTheme(t)} />
           </div>
         </header>
 

@@ -3,6 +3,7 @@
 //! A Tauri application that helps you plan projects by working backwards
 //! from deadlines to determine when you need to start.
 
+mod config;
 mod project;
 mod scheduler;
 
@@ -24,7 +25,9 @@ pub fn run() {
             project::load_project,
             project::save_project,
             project::list_projects,
-            project::delete_project
+            project::delete_project,
+            config::load_config,
+            config::save_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

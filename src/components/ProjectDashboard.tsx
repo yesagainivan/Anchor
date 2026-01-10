@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ProjectMetadata } from "../types";
 import { getStatusBgColor } from "../utils/status";
+import { ThemeToggle, Theme } from "./ThemeToggle";
 
 interface ProjectDashboardProps {
     onOpenProject: (id: string) => void;
+    theme: Theme;
+    onThemeChange: (theme: Theme) => void;
 }
 
-export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
+export function ProjectDashboard({ onOpenProject, theme, onThemeChange }: ProjectDashboardProps) {
     const [projects, setProjects] = useState<ProjectMetadata[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -59,9 +62,12 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
     return (
         <div className="flex flex-col h-screen bg-surface-alt p-8 overflow-y-auto">
             <div className="max-w-5xl mx-auto w-full">
-                <header className="mb-8">
-                    <h1 className="text-3xl font-bold text-text mb-2">My Goals</h1>
-                    <p className="text-text-muted">Manage your projects and plans.</p>
+                <header className="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-bold text-text mb-2">My Goals</h1>
+                        <p className="text-text-muted">Manage your projects and plans.</p>
+                    </div>
+                    <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

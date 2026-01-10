@@ -5,8 +5,10 @@
 
 @theme {
   /* Brand colors */
-  --color-brand: #3b82f6;
-  --color-brand-hover: #2563eb;
+  /* --color-brand: #3b82f6; */
+  --color-brand: #f1da67;
+  /* --color-brand-hover: #2563eb; */
+  --color-brand-hover: #f1da67;
 
   /* Semantic surface colors */
   --color-surface: #ffffff;
@@ -30,16 +32,17 @@
 
 /* Dark mode overrides */
 .dark {
-  --color-surface: #1f2937;
-  --color-surface-alt: #111827;
-  --color-surface-raised: #374151;
+  /* --color-surface: #f1da67; */
+  --color-surface: #202123;
+  --color-surface-alt: #171819;
+  --color-surface-raised: #363a3f;
 
-  --color-border: #374151;
-  --color-border-muted: #1f2937;
+  --color-border: #404142;
+  --color-border-muted: #27282a;
 
   --color-text: #f9fafb;
-  --color-text-muted: #9ca3af;
-  --color-text-faint: #6b7280;
+  --color-text-muted: #9c9eaf;
+  --color-text-faint: #7a7982;
 }
 
 :root {
