@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ScheduledTask, Task } from '../types';
 import { differenceInDays, parseISO, format, addDays, isToday, isBefore } from 'date-fns';
-import { TodayIcon } from './icons';
+import { TodayIcon, FireIcon } from './icons';
 
 interface TimelineProps {
     tasks: ScheduledTask[];
@@ -14,6 +14,7 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [hasOverflow, setHasOverflow] = useState(false);
     const [showToday, setShowToday] = useState(false);
+    const [showCriticalPath, setShowCriticalPath] = useState(false);
 
     // Check if content overflows container
     useEffect(() => {
@@ -54,12 +55,17 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
     today.setHours(0, 0, 0, 0);
 
     const firstTaskStart = parseISO(sortedTasks[0].start_date);
-    const lastTaskEnd = parseISO(sortedTasks[sortedTasks.length - 1].end_date);
+
+    // Find the latest end date among all tasks (not just the last one in start-sorted list)
+    const lastTaskEnd = tasks.reduce((max, t) => {
+        const end = parseISO(t.end_date);
+        return isBefore(max, end) ? end : max;
+    }, parseISO(tasks[0].end_date));
 
     // When showToday is ON and today is before first task, extend range to include today
     const rangeStart = showToday && isBefore(today, firstTaskStart) ? today : firstTaskStart;
     const rangeEnd = lastTaskEnd;
-    const totalDays = differenceInDays(rangeEnd, rangeStart) + 3;
+    const totalDays = differenceInDays(rangeEnd, rangeStart) + 1;
 
     // Calculate buffer zone (days between today and first task)
     const bufferDays = showToday && isBefore(today, firstTaskStart)
@@ -74,8 +80,9 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
 
     const dateMarkers: { date: Date; pct: number }[] = [];
     const markerCount = Math.min(5, totalDays);
-    for (let i = 0; i <= markerCount; i++) {
-        const dayOffset = Math.round((i / markerCount) * (totalDays - 2));
+    for (let i = 0; i < markerCount; i++) {
+        // Use full range distribution
+        const dayOffset = Math.round((i / (markerCount - 1)) * (totalDays - 1));
         const date = addDays(rangeStart, dayOffset);
         dateMarkers.push({
             date,
@@ -103,29 +110,56 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                 </span>
                             )}
                         </div>
-                        <button
-                            onClick={() => setShowToday(!showToday)}
-                            title={showToday ? 'Hide buffer to today' : 'Show buffer from today'}
-                            className={`p-1 rounded transition-colors ${showToday
-                                ? 'text-brand bg-brand/10'
-                                : 'text-text-faint hover:text-text-muted hover:bg-surface'}`}
-                        >
-                            <TodayIcon className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setShowCriticalPath(!showCriticalPath)}
+                                title={showCriticalPath ? 'Hide Critical Path' : 'Show Critical Path'}
+                                className={`p-1 rounded transition-colors ${showCriticalPath
+                                    ? 'text-danger bg-danger/10'
+                                    : 'text-text-faint hover:text-text-muted hover:bg-surface'}`}
+                            >
+                                <FireIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => setShowToday(!showToday)}
+                                title={showToday ? 'Hide buffer to today' : 'Show buffer from today'}
+                                className={`p-1 rounded transition-colors ${showToday
+                                    ? 'text-brand bg-brand/10'
+                                    : 'text-text-faint hover:text-text-muted hover:bg-surface'}`}
+                            >
+                                <TodayIcon className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                     <div className="flex-1 relative h-10">
-                        {dateMarkers.map(({ date, pct }, i) => (
-                            <div
-                                key={i}
-                                className="absolute top-0 h-full flex items-center"
-                                style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
-                            >
-                                <span className={`text-xs font-medium whitespace-nowrap ${isToday(date) ? 'text-brand' : 'text-text-faint'
-                                    }`}>
-                                    {format(date, 'MMM d')}
-                                </span>
-                            </div>
-                        ))}
+                        {dateMarkers.map(({ date, pct }, i) => {
+                            // Align first marker to left, others centered
+                            const isFirst = i === 0;
+
+                            let style: React.CSSProperties = { left: `${pct}%` };
+                            let className = "absolute top-0 h-full flex items-center";
+
+                            if (isFirst) {
+                                style.transform = 'none';
+                                className += " pl-2";
+                            } else {
+                                style.transform = 'translateX(-50%)';
+                                className += " justify-center";
+                            }
+
+                            return (
+                                <div
+                                    key={i}
+                                    className={className}
+                                    style={style}
+                                >
+                                    <span className={`text-xs font-medium whitespace-nowrap ${isToday(date) ? 'text-brand' : 'text-text-faint'
+                                        }`}>
+                                        {format(date, 'MMM d')}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -176,6 +210,8 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                     const succTask = tasks.find(t => t.id === succ.id);
                                     if (!succTask) return null;
 
+                                    const isCriticalLink = showCriticalPath && task.is_critical && succTask.is_critical;
+
                                     const startIdx = getTaskIndex(task.id);
                                     const endIdx = getTaskIndex(succ.id);
 
@@ -192,8 +228,9 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                             key={`${task.id}-${succ.id}`}
                                             d={`M ${x1} ${y1} C ${x1 + 2} ${y1}, ${x2 - 2} ${y2}, ${x2} ${y2}`}
                                             fill="none"
-                                            stroke="var(--color-border)"
-                                            strokeWidth="1.5"
+                                            stroke={isCriticalLink ? "var(--color-danger)" : "var(--color-border)"}
+                                            strokeWidth={isCriticalLink ? "2" : "1.5"}
+                                            strokeOpacity={isCriticalLink ? "0.8" : "1"}
                                             vectorEffect="non-scaling-stroke"
                                         />
                                     );
@@ -214,6 +251,16 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
 
                         const isPast = isBefore(end, today);
 
+                        // Determine bar color class
+                        let barClass = 'bg-gradient-to-r from-brand to-brand-hover';
+                        if (task.completed) {
+                            barClass = 'bg-success opacity-90';
+                        } else if (showCriticalPath && task.is_critical) {
+                            barClass = 'bg-danger shadow-[0_0_8px_rgba(239,68,68,0.4)]';
+                        } else if (isPast) {
+                            barClass = 'bg-text-faint';
+                        }
+
                         return (
                             <div
                                 key={task.id}
@@ -225,8 +272,8 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                     className="shrink-0 px-4 flex flex-col justify-center"
                                     style={{ width: LABEL_WIDTH }}
                                 >
-                                    <span className={`text-sm font-medium truncate ${isPast ? 'text-text-faint' : 'text-text'
-                                        }`}>
+                                    <span className={`text-sm font-medium truncate ${isPast && !(showCriticalPath && task.is_critical) ? 'text-text-faint' : 'text-text'
+                                        } ${showCriticalPath && task.is_critical && !task.completed ? 'text-danger' : ''}`}>
                                         {task.name}
                                     </span>
                                     <span className="text-xs text-text-faint">{duration}d</span>
@@ -234,18 +281,16 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
 
                                 <div className="flex-1 relative">
                                     <div
-                                        className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${task.completed ? 'bg-success opacity-90' :
-                                            isPast
-                                                ? 'bg-text-faint'
-                                                : 'bg-gradient-to-r from-brand to-brand-hover'
-                                            }`}
+                                        className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${barClass}`}
                                         style={{
                                             left: `${leftPct}%`,
                                             width: `${Math.max(widthPct, 1.5)}%`,
                                             top: '50%',
                                             transform: 'translateY(-50%)'
                                         }}
-                                        title={`${task.name}: ${format(start, 'MMM d')} – ${format(end, 'MMM d')}`}
+                                        title={`${task.name}
+${format(start, 'MMM d')} – ${format(end, 'MMM d')}
+${task.is_critical ? 'CRITICAL PATH' : `Slack: ${task.slack_days} days`}`}
                                     />
                                 </div>
                             </div>

@@ -8,7 +8,8 @@
   /* --color-brand: #3b82f6; */
   --color-brand: #f1da67;
   /* --color-brand-hover: #2563eb; */
-  --color-brand-hover: #f1da67;
+  --color-brand-hover: #e7cf54;
+
 
   /* Semantic surface colors */
   --color-surface: #ffffff;
@@ -174,6 +175,7 @@
 }
 
 /* Mobile responsive */
+/* @media (max-width: 800px) { */
 @media (max-width: 1023px) {
   .app-sidebar {
     position: fixed;
@@ -204,7 +206,7 @@
 /* Scrollbar styling */
 .sidebar-content::-webkit-scrollbar,
 .main-content::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .sidebar-content::-webkit-scrollbar-track,
@@ -214,7 +216,7 @@
 
 .sidebar-content::-webkit-scrollbar-thumb,
 .main-content::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: color-mix(in srgb, var(--color-border) 40%, transparent);
   border-radius: 3px;
 }
 

@@ -12,6 +12,8 @@ export interface ScheduledTask {
     start_date: string;
     end_date: string;
     completed: boolean;
+    is_critical: boolean;
+    slack_days: number;
 }
 
 export interface ScheduleRequest {

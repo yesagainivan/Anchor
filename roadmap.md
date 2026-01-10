@@ -19,16 +19,16 @@ A backwards scheduling app that works from your deadline, not from today.
 
 ### Progress Tracking
 Mark tasks as complete, see overall project completion percentage.
-- [ ] Add `completed` field to tasks
-- [ ] Checkbox UI in task list
-- [ ] Completion % in timeline header
-- [ ] Visual distinction for completed tasks
+- [x] Add `completed` field to tasks
+- [x] Checkbox UI in task list
+- [x] Completion % in timeline header
+- [x] Visual distinction for completed tasks
 
 ### Critical Path Highlighting
 Show which tasks can't slip without delaying the deadline.
-- [ ] Calculate critical path in scheduler
-- [ ] Highlight critical tasks in timeline
-- [ ] Show slack time for non-critical tasks
+- [x] Calculate critical path in scheduler
+- [x] Highlight critical tasks in timeline
+- [x] Show slack time for non-critical tasks
 
 ---
 
