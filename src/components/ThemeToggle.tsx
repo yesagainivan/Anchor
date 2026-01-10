@@ -4,14 +4,13 @@ import { SunIcon, MoonIcon, ComputerIcon } from './icons';
 type Theme = 'light' | 'dark' | 'system';
 
 export function ThemeToggle() {
-    const [theme, setTheme] = useState<Theme>('system');
-
-    useEffect(() => {
-        const saved = localStorage.getItem('theme') as Theme | null;
-        if (saved) {
-            setTheme(saved);
+    const [theme, setTheme] = useState<Theme>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('theme') as Theme | null;
+            return saved || 'system';
         }
-    }, []);
+        return 'system';
+    });
 
     useEffect(() => {
         const root = document.documentElement;

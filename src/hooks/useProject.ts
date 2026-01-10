@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Project, ScheduledTask, Task } from "../types";
 
@@ -19,6 +19,9 @@ export function useProject(projectId: string | null) {
     const [error, setError] = useState<string | null>(null);
     const [anchorDate, setAnchorDate] = useState<string>("");
 
+    // Ref to track if we have unsaved changes
+    const isDirty = useRef(false);
+
     // Load project when ID changes
     useEffect(() => {
         if (!projectId) {
@@ -32,6 +35,7 @@ export function useProject(projectId: string | null) {
             try {
                 const loaded: Project = await invoke("load_project", { id: projectId });
                 setProject(loaded);
+                isDirty.current = false; // Reset dirty flag after load
 
                 // Set initial anchor date if any anchors exist
                 const anchorIds = Object.keys(loaded.anchors);
@@ -87,10 +91,18 @@ export function useProject(projectId: string | null) {
     // Auto-save logic
     const debouncedProject = useDebounce(project, 1000);
     useEffect(() => {
-        if (debouncedProject && projectId) {
-            invoke("save_project", { project: debouncedProject }).catch(e => {
+        if (debouncedProject && projectId && isDirty.current) {
+            invoke("save_project", { project: debouncedProject }).then(() => {
+                // We don't necessarily reset dirty here because new changes might be pending?
+                // But for this simple implementation, if we saved, we are clean relative to that state.
+                // However, debouncedProject is behind real state.
+                // Safest is to leave dirty=true until next load, OR assume save is successful for that snapshot.
+                // Actually, if we don't reset isDirty, we will save unchanged project again?
+                // No, debouncedProject only updates if project changes.
+                // So the effect only runs when project changes.
+                // So checking isDirty inside the effect is correct.
+            }).catch(e => {
                 console.error("Auto-save failed:", e);
-                // Don't show user visible error for background save unless critical?
             });
         }
     }, [debouncedProject, projectId]);
@@ -98,11 +110,13 @@ export function useProject(projectId: string | null) {
     // Actions
     const addTask = (task: Task) => {
         if (!project) return;
+        isDirty.current = true;
         setProject(p => p ? { ...p, tasks: [...p.tasks, task] } : null);
     };
 
     const removeTask = (taskId: string) => {
         if (!project) return;
+        isDirty.current = true;
         setProject(p => {
             if (!p) return null;
             const newTasks = p.tasks
@@ -116,18 +130,19 @@ export function useProject(projectId: string | null) {
 
     const editTask = (updatedTask: Task) => {
         if (!project) return;
+        isDirty.current = true;
         setProject(p => p ? { ...p, tasks: p.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) } : null);
     };
 
     const toggleAnchor = (taskId: string) => {
         if (!project) return;
+        isDirty.current = true;
         setProject(p => {
             if (!p) return null;
             const newAnchors = { ...p.anchors };
             if (newAnchors[taskId]) {
                 delete newAnchors[taskId];
             } else {
-                // If adding first anchor, use today if date not set
                 let date = anchorDate;
                 if (!date) {
                     date = new Date().toISOString().split('T')[0];

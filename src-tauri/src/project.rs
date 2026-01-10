@@ -25,6 +25,9 @@ pub struct ProjectMetadata {
     pub created_at: String,
     pub last_modified: String,
     pub task_count: usize,
+    pub next_deadline: Option<String>,
+    pub current_focus: Option<String>,
+    pub status: String,
 }
 
 #[derive(Debug, Error)]
@@ -97,21 +100,114 @@ pub fn load_project(app: AppHandle, id: String) -> Result<Project, String> {
 pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
     let dir = get_projects_dir(&app)?;
     let mut projects = Vec::new();
+    let today = chrono::Local::now().date_naive();
 
     for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
         if path.extension().and_then(|s| s.to_str()) == Some("json") {
-            // We just read the whole file to get metadata for now.
-            // In a real app with huge files we might want a separate index or header reading.
             if let Ok(content) = fs::read_to_string(&path) {
                 if let Ok(project) = serde_json::from_str::<Project>(&content) {
+                    // Calculate derived metadata
+                    let mut next_deadline = None;
+                    let mut current_focus = None;
+                    let mut status = "empty".to_string();
+
+                    if !project.anchors.is_empty() {
+                        // Default to Anchor for deadline/status
+                        let mut anchors: Vec<chrono::NaiveDate> = project
+                            .anchors
+                            .values()
+                            .filter_map(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+                            .filter(|d| *d >= today)
+                            .collect();
+                        anchors.sort();
+
+                        // Default to nearest anchor
+                        if let Some(anchor) = anchors.first() {
+                            next_deadline = Some(anchor.to_string());
+                            let days = (*anchor - today).num_days();
+                            status = if days < 0 {
+                                "overdue".to_string()
+                            } else if days <= 5 {
+                                "urgent".to_string()
+                            } else {
+                                "on_track".to_string()
+                            };
+                        } else {
+                            status = "overdue".to_string(); // All anchors passed
+                        }
+
+                        // Try to find a better "Next Deadline" from the schedule (Next Task)
+                        let req = crate::scheduler::ScheduleRequest {
+                            tasks: project.tasks.clone(),
+                            anchors: project.anchors.clone(),
+                        };
+
+                        if let Ok(schedule) = crate::scheduler::calculate_backwards_schedule(req) {
+                            // Find active or next upcoming task
+                            let mut active_or_upcoming = schedule
+                                .iter()
+                                .filter_map(|t| {
+                                    let start = chrono::NaiveDate::parse_from_str(
+                                        &t.start_date,
+                                        "%Y-%m-%d",
+                                    )
+                                    .ok()?;
+                                    let end =
+                                        chrono::NaiveDate::parse_from_str(&t.end_date, "%Y-%m-%d")
+                                            .ok()?;
+                                    // Include if it ends today or in future
+                                    if end >= today {
+                                        Some((start, end, t))
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect::<Vec<_>>();
+
+                            // Sort by end date (deadline)
+                            active_or_upcoming.sort_by_key(|(_, end, _)| *end);
+
+                            if let Some((start, end, task)) = active_or_upcoming.first() {
+                                // Update Next Deadline to this task's deadline
+                                next_deadline = Some(end.to_string());
+
+                                // Update Status based on THIS deadline
+                                let days = (*end - today).num_days();
+                                status = if days < 0 {
+                                    "overdue".to_string()
+                                } else if days <= 5 {
+                                    "urgent".to_string()
+                                } else {
+                                    "on_track".to_string()
+                                };
+
+                                // Set Current Focus text
+                                if today >= *start && today <= *end {
+                                    current_focus = Some(task.name.clone());
+                                } else {
+                                    let start_days = (*start - today).num_days();
+                                    current_focus = Some(format!(
+                                        "{} (starts in {} days)",
+                                        task.name, start_days
+                                    ));
+                                }
+                            } else {
+                                current_focus = Some("All tasks completed".to_string());
+                            }
+                        }
+                    }
+
                     projects.push(ProjectMetadata {
                         id: project.id,
                         name: project.name,
                         created_at: project.created_at,
                         last_modified: project.last_modified,
                         task_count: project.tasks.len(),
+                        next_deadline,
+                        current_focus,
+                        status,
                     });
                 }
             }

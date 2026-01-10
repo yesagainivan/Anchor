@@ -1,4 +1,5 @@
 import { differenceInDays, parseISO, format } from 'date-fns';
+import { getProjectStatus, getStatusColor } from '../utils/status';
 
 interface DeadlineDisplayProps {
     anchors: Record<string, string>;
@@ -15,11 +16,8 @@ export function DeadlineDisplay({ anchors }: DeadlineDisplayProps) {
     today.setHours(0, 0, 0, 0);
     const daysLeft = differenceInDays(earliestDeadline, today);
 
-    const statusColor = daysLeft < 0
-        ? 'text-danger'
-        : daysLeft <= 7
-            ? 'text-warning'
-            : 'text-success';
+    const status = getProjectStatus(daysLeft);
+    const colorClass = getStatusColor(status);
 
     return (
         <div className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -34,7 +32,7 @@ export function DeadlineDisplay({ anchors }: DeadlineDisplayProps) {
                 </div>
 
                 <div className="text-right">
-                    <div className={`text-2xl font-bold ${statusColor}`}>
+                    <div className={`text-2xl font-bold ${colorClass}`}>
                         {daysLeft < 0 ? 'Overdue' : daysLeft}
                     </div>
                     {daysLeft >= 0 && (

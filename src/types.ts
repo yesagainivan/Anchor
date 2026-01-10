@@ -32,4 +32,7 @@ export interface ProjectMetadata {
     created_at: string;
     last_modified: string;
     task_count: number;
+    next_deadline: string | null;
+    current_focus: string | null;
+    status: 'empty' | 'on_track' | 'urgent' | 'overdue';
 }
