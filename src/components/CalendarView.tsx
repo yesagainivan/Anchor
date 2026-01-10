@@ -126,7 +126,7 @@ export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
     };
 
     return (
-        <div className="rbc-calendar-container bg-surface rounded-xl shadow-sm border border-border p-4 h-[700px]">
+        <div className="rbc-calendar-container bg-surface rounded-xl shadow-sm border border-border p-4 h-full flex flex-col overflow-hidden">
             <DnDCalendar
                 localizer={localizer}
                 events={events}

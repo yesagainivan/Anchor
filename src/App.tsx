@@ -103,7 +103,8 @@ function App() {
           </h1>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-surface-alt text-text-muted"
+            className="p-1.5 rounded-lg hover:bg-surface-alt text-text-muted transition-colors"
+            title="Close Sidebar"
           >
             <CloseIcon />
           </button>
