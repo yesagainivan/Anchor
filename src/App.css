@@ -7,7 +7,8 @@
 @theme {
   /* Brand colors */
   /* --color-brand: #3b82f6; */
-  --color-brand: #f1da67;
+  /* --color-brand: #f1da67; */
+  --color-brand: #d9b145;
   /* --color-brand-hover: #2563eb; */
   --color-brand-hover: #e7cf54;
 
@@ -30,6 +31,26 @@
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
+}
+
+/* Override Tailwind Typography defaults */
+.prose {
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-text);
+  --tw-prose-lead: var(--color-text-muted);
+  --tw-prose-links: var(--color-brand);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-counters: var(--color-text-muted);
+  --tw-prose-bullets: var(--color-text-muted);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-quotes: var(--color-text);
+  --tw-prose-quote-borders: var(--color-brand);
+  --tw-prose-captions: var(--color-text-faint);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-pre-code: var(--color-text);
+  --tw-prose-pre-bg: var(--color-surface-alt);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
 }
 
 /* Dark mode overrides */
@@ -215,9 +236,15 @@
   background: color-mix(in srgb, var(--color-text-faint) 40%, transparent);
 }
 
+.sidebar-content::-webkit-scrollbar {
+  width: 4px;
+  display: none;
+}
+
 /* All scrollbars */
 ::-webkit-scrollbar {
   width: 4px;
+  /* display: none; */
 }
 
 ::-webkit-scrollbar-track {

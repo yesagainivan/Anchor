@@ -192,6 +192,33 @@ function App() {
                 {/* <span className="hidden sm:inline">Details</span> */}
               </button>
             </div>
+            <button
+              onClick={async () => {
+                try {
+                  const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+                  const widget = await WebviewWindow.getByLabel('widget');
+                  if (widget) {
+                    widget.setFocus();
+                  } else {
+                    new WebviewWindow('widget', {
+                      url: 'widget.html',
+                      transparent: true,
+                      decorations: false,
+                      skipTaskbar: true,
+                      resizable: false,
+                      width: 300,
+                      height: 300
+                    });
+                  }
+                } catch (e) {
+                  console.error('Failed to launch widget:', e);
+                }
+              }}
+              className="p-2 rounded-lg hover:bg-surface-alt text-text-muted text-xs uppercase font-bold tracking-wider"
+              title="Launch Widget"
+            >
+              WIDGET
+            </button>
             <ThemeToggle theme={theme as Theme} onThemeChange={(t) => setTheme(t)} />
           </div>
         </header>

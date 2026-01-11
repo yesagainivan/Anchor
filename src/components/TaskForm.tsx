@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Task } from '../types';
-import { AnchorIcon, CloseIcon, EditIcon, CheckIcon, MemoIcon, DiamondIcon } from './icons';
+import { AnchorIcon, CloseIcon, EditIcon, CheckIcon, MemoIcon, DiamondIcon, ChevronRightIcon, ChevronDownIcon } from './icons';
 import { Checkbox } from './Checkbox';
 
 interface TaskFormProps {
@@ -32,6 +32,7 @@ export function TaskForm({
     const [newTaskNotes, setNewTaskNotes] = useState('');
     const [isMilestone, setIsMilestone] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+    const [isFormCollapsed, setIsFormCollapsed] = useState(true);
 
     const handleSubmit = () => {
         if (!newTaskName.trim()) return;
@@ -107,11 +108,16 @@ export function TaskForm({
             </div>
 
             {/* Add/Edit Task Section */}
-            <div className="p-4 border-b border-border-muted">
-                <h3 className="text-sm font-semibold text-text mb-3">
+            <div className="p-4 border-b border-border-muted transition-all duration-300 ease-in-out">
+                <button
+                    onClick={() => setIsFormCollapsed(!isFormCollapsed)}
+                    className="flex items-center gap-2 text-sm font-semibold text-text w-full hover:opacity-80 transition-opacity"
+                >
+                    {isFormCollapsed ? <ChevronRightIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
                     {editingTaskId ? 'Edit Task' : 'Add Task'}
-                </h3>
-                <div className="space-y-3">
+                </button>
+
+                <div className={`space-y-3 transition-all duration-300 ease-in-out overflow-hidden ${isFormCollapsed && !editingTaskId ? 'max-h-0 opacity-0 mt-0' : 'max-h-[500px] opacity-100 mt-3'}`}>
                     <input
                         placeholder="Task name"
                         className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none"

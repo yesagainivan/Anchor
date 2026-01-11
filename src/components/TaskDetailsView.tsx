@@ -131,21 +131,21 @@ export function TaskDetailsView({
                                     onClick={toggleCompletion}
                                     className={`p-2 rounded transition-colors ${taskDef.completed
                                         ? 'bg-success/10 text-success hover:bg-success/20'
-                                        : 'bg-surface-alt text-text-muted hover:text-text hover:bg-border'}`}
+                                        : 'bg-transparent text-text-muted hover:text-text hover:bg-border'}`}
                                     title={taskDef.completed ? "Mark Incomplete" : "Mark Complete"}
                                 >
                                     <CheckIcon className="w-5 h-5" />
                                 </button>
                                 <button
                                     onClick={() => setIsEditing(true)}
-                                    className="p-2 bg-surface-alt text-text-muted hover:text-text hover:bg-border rounded transition-colors"
+                                    className="p-2 bg-transparent text-text-muted hover:text-text hover:bg-border rounded transition-colors"
                                     title="Edit"
                                 >
                                     <EditIcon className="w-5 h-5" />
                                 </button>
                                 <button
                                     onClick={() => onDeleteTask(taskId)}
-                                    className="p-2 bg-surface-alt text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
+                                    className="p-2 bg-transparent text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
                                     title="Delete"
                                 >
                                     <CloseIcon className="w-5 h-5" />
@@ -191,7 +191,7 @@ export function TaskDetailsView({
                                 onChange={e => setEditNotes(e.target.value)}
                             />
                         ) : (
-                            <div className="prose prose-sm prose-invert max-w-none text-text">
+                            <div className="prose prose-sm max-w-none text-text">
                                 {taskDef.notes ? (
                                     <ReactMarkdown>{taskDef.notes}</ReactMarkdown>
                                 ) : (
