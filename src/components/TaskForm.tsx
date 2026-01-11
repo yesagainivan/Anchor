@@ -11,6 +11,7 @@ interface TaskFormProps {
     onToggleAnchor: (taskId: string) => void;
     onAnchorDateChange: (date: string) => void;
     onEditTask: (task: Task) => void;
+    onOpenDetails: (taskId: string) => void;
 }
 
 export function TaskForm({
@@ -21,7 +22,8 @@ export function TaskForm({
     onRemoveTask,
     onToggleAnchor,
     onAnchorDateChange,
-    onEditTask
+    onEditTask,
+    onOpenDetails
 }: TaskFormProps) {
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState(1);
@@ -33,6 +35,7 @@ export function TaskForm({
         if (!newTaskName.trim()) return;
 
         if (editingTaskId) {
+            // Keep internal edit logic just in case, but primary edit is now external
             const originalTask = tasks.find(t => t.id === editingTaskId);
             const updatedTask: Task = {
                 id: editingTaskId,
@@ -62,11 +65,8 @@ export function TaskForm({
     };
 
     const handleStartEdit = (task: Task) => {
-        setEditingTaskId(task.id);
-        setNewTaskName(task.name);
-        setNewTaskDuration(task.duration_days);
-        setSelectedDependencies(task.dependencies);
-        setNewTaskNotes(task.notes || '');
+        // Redirect to details view instead of inline edit
+        onOpenDetails(task.id);
     };
 
     const handleCancelEdit = () => {
@@ -219,11 +219,17 @@ export function TaskForm({
                                         } ${task.completed ? 'opacity-60' : ''}`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0 flex items-start gap-3">
+                                        <div
+                                            className="flex-1 min-w-0 flex items-start gap-3 cursor-pointer"
+                                            onClick={() => onOpenDetails(task.id)}
+                                        >
                                             {/* Completion Toggle */}
                                             <button
                                                 type="button"
-                                                onClick={toggleCompletion}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleCompletion();
+                                                }}
                                                 className={`mt-0.5 shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${task.completed
                                                     ? 'bg-success border-success text-white'
                                                     : 'bg-surface border-text-muted/40 hover:border-brand'

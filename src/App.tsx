@@ -5,10 +5,12 @@ import { CalendarView } from "./components/CalendarView";
 import { DeadlineDisplay } from "./components/DeadlineDisplay";
 import { ThemeToggle, Theme } from "./components/ThemeToggle";
 import { ProjectDashboard } from "./components/ProjectDashboard";
-import { MenuIcon, CloseIcon, TimelineIcon, CalendarIcon, BackIcon } from "./components/icons";
+import { MenuIcon, CloseIcon, TimelineIcon, CalendarIcon, BackIcon, MemoIcon } from "./components/icons";
 import { useProject } from "./hooks/useProject";
 import { useConfig } from "./hooks/useConfig";
 import "./App.css";
+
+import { TaskDetailsView } from "./components/TaskDetailsView";
 
 function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
@@ -28,7 +30,8 @@ function App() {
     anchorTaskIds
   } = useProject(activeProjectId);
 
-  const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
+  const [viewMode, setViewMode] = useState<'timeline' | 'calendar' | 'details'>('timeline');
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Apply theme to DOM
@@ -57,6 +60,11 @@ function App() {
       toggleAnchor(taskId);
     }
   }, [toggleAnchor, anchorTaskIds, setAnchorDate]);
+
+  const handleOpenDetails = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setViewMode('details');
+  };
 
   if (!configLoaded) {
     return null; // Or a loading spinner
@@ -121,6 +129,7 @@ function App() {
             onToggleAnchor={toggleAnchor}
             onAnchorDateChange={setAnchorDate}
             onEditTask={editTask}
+            onOpenDetails={handleOpenDetails}
           />
         </div>
       </aside>
@@ -145,7 +154,7 @@ function App() {
               <MenuIcon />
             </button>
             <h2 className="text-lg font-semibold text-text">
-              {viewMode === 'timeline' ? 'Timeline' : 'Calendar'}
+              {viewMode === 'timeline' ? 'Timeline' : viewMode === 'calendar' ? 'Calendar' : 'Task Details'}
             </h2>
           </div>
 
@@ -157,6 +166,7 @@ function App() {
                   ? 'bg-surface text-text shadow-sm'
                   : 'text-text-muted hover:text-text'
                   }`}
+                title="Timeline View"
               >
                 <TimelineIcon />
               </button>
@@ -166,38 +176,23 @@ function App() {
                   ? 'bg-surface text-text shadow-sm'
                   : 'text-text-muted hover:text-text'
                   }`}
+                title="Calendar View"
               >
                 <CalendarIcon />
               </button>
+              <button
+                onClick={() => setViewMode('details')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${viewMode === 'details'
+                  ? 'bg-surface text-text shadow-sm'
+                  : 'text-text-muted hover:text-text'
+                  }`}
+                title="Task Details"
+              >
+                <MemoIcon className="w-4 h-4" />
+                {/* <span className="hidden sm:inline">Details</span> */}
+              </button>
             </div>
             <ThemeToggle theme={theme as Theme} onThemeChange={(t) => setTheme(t)} />
-            <button
-              onClick={async () => {                   // Dynamic import to avoid SSR/build issues if package not present (though it is)
-                const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
-
-                const widget = await WebviewWindow.getByLabel('widget');
-
-                if (widget) {
-                  // widget.msg('You clicked the widget button!'); // Placeholder
-                  widget.setFocus();
-                } else {
-                  // If not found (closed), Create it
-                  new WebviewWindow('widget', {
-                    url: 'widget.html',
-                    transparent: true,
-                    decorations: false,
-                    skipTaskbar: true,
-                    resizable: false,
-                    width: 300,
-                    height: 400
-                  });
-                }
-              }}
-              className="p-2 rounded-lg hover:bg-surface-alt text-text-muted text-xs uppercase font-bold tracking-wider"
-              title="Launch Widget"
-            >
-              WIDGET
-            </button>
           </div>
         </header>
 
@@ -210,9 +205,25 @@ function App() {
 
         <div className="main-content">
           {viewMode === 'timeline' ? (
-            <Timeline tasks={scheduledTasks} definitions={tasks} />
-          ) : (
+            <Timeline
+              tasks={scheduledTasks}
+              definitions={tasks}
+              onOpenDetails={handleOpenDetails}
+            />
+          ) : viewMode === 'calendar' ? (
             <CalendarView tasks={scheduledTasks} onTaskMove={handleTaskMove} />
+          ) : (
+            <TaskDetailsView
+              taskId={selectedTaskId}
+              tasks={tasks}
+              schedule={scheduledTasks}
+              onUpdateTask={editTask}
+              onDeleteTask={(id) => {
+                removeTask(id);
+                setSelectedTaskId(null);
+              }}
+              onClose={() => setViewMode('timeline')}
+            />
           )}
         </div>
       </main>

@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
 import { ScheduledTask, Task } from '../types';
 import { useRef, useEffect, useState } from 'react';
 import { AlertIcon } from './icons';
@@ -11,7 +12,7 @@ interface TaskHoverCardProps {
     getTaskName: (id: string) => string;
 }
 
-export function TaskHoverCard({ task, definition, position, getTaskName }: TaskHoverCardProps) {
+export function TaskHoverCard({ task, definition, position, getTaskName, onMouseEnter, onMouseLeave }: TaskHoverCardProps & { onMouseEnter?: () => void; onMouseLeave?: () => void }) {
     const cardRef = useRef<HTMLDivElement>(null);
     const [adjustedPosition, setAdjustedPosition] = useState(position);
 
@@ -54,10 +55,12 @@ export function TaskHoverCard({ task, definition, position, getTaskName }: TaskH
     return createPortal(
         <div
             ref={cardRef}
-            className="fixed z-50 pointer-events-none transition-all duration-75"
+            className="fixed z-50 transition-all duration-75"
             style={style}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
         >
-            <div className="bg-surface/50 backdrop-blur-sm border border-border rounded-lg shadow-xl p-3 w-72 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-2">
+            <div className="bg-surface/50 backdrop-blur-sm border border-border rounded-lg shadow-xl p-3 w-72 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-2 pointer-events-auto">
                 {/* Header */}
                 <div className="mb-2">
                     <h4 className="font-semibold text-text text-sm leading-tight mb-0.5">
@@ -120,8 +123,8 @@ export function TaskHoverCard({ task, definition, position, getTaskName }: TaskH
                 {task.notes && (
                     <div className="bg-surface-alt/30 rounded p-2 mb-2 text-xs border border-border-muted/50">
                         <span className="text-text-faint font-medium block mb-0.5">Notes</span>
-                        <div className="text-text-muted whitespace-pre-wrap max-h-32 overflow-y-auto custom-scrollbar">
-                            {task.notes}
+                        <div className="prose prose-xs prose-invert max-w-none text-text-muted max-h-32 overflow-y-auto custom-scrollbar">
+                            <ReactMarkdown>{task.notes}</ReactMarkdown>
                         </div>
                     </div>
                 )}

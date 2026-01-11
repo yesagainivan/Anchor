@@ -7,13 +7,14 @@ import { TaskHoverCard } from './TaskHoverCard';
 interface TimelineProps {
     tasks: ScheduledTask[];
     definitions: Task[];
+    onOpenDetails?: (taskId: string) => void;
 }
 
 const LABEL_WIDTH = 140;
 const MIN_PIXELS_PER_DAY = 10;
 const MAX_PIXELS_PER_DAY = 200;
 
-export function Timeline({ tasks, definitions }: TimelineProps) {
+export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
     // const containerRef = useRef<HTMLDivElement>(null); // Replaced by callback ref
     const [hasOverflow, setHasOverflow] = useState(false);
     const [showToday, setShowToday] = useState(false);
@@ -170,10 +171,28 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
         setPixelsPerDay(Math.max(MIN_PIXELS_PER_DAY, current * 0.8));
     };
 
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleTaskMouseEnter = (task: ScheduledTask, rect: DOMRect) => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+        setHoveredTask({
+            task,
+            position: { x: rect.right, y: rect.top }
+        });
+    };
+
+    const handleTaskMouseLeave = () => {
+        hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredTask(null);
+        }, 150); // Small delay to allow moving to card
+    };
+
     return (
         <div className="relative h-full flex flex-col bg-surface rounded-xl border border-border overflow-hidden">
-            {/* Floating Top Right Toolbar */}
-            {/* <div className="absolute  top-4 right-4 z-50 flex items-center gap-2 bg-surface-alt/20 backdrop-blur-sm border border-border shadow-sm p-1.5 rounded-lg select-none"> */}
+            {/* ... toolbar ... */}
             <div className="absolute  bottom-4 right-4 z-50 flex items-center gap-2 bg-surface-alt/20 backdrop-blur-sm border border-border shadow-sm p-1.5 rounded-lg select-none">
                 {/* Zoom Controls */}
                 <div className="flex items-center gap-0.5 border-r border-border-muted pr-2 mr-1">
@@ -243,14 +262,6 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
 
                         {/* Header Timeline Track */}
                         <div className="overflow-hidden flex-1 relative h-10">
-                            {/* We need a scrolling container here that syncs? 
-                            Actually, simpler: The whole thing scrolls together?
-                            Issue: Task labels need to be sticky left.
-                            
-                            Let's restructure:
-                            Outer container scrolls X.
-                            Left labels are sticky left.
-                        */}
                             <div style={{ width: contentWidth, height: '100%', position: 'relative' }} className="border-r border-border-muted/50">
                                 {dateMarkers.map(({ date, left }, i) => (
                                     <div
@@ -266,8 +277,6 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                 ))}
                             </div>
                         </div>
-
-
                     </div>
 
                     {/* Task rows container */}
@@ -383,7 +392,9 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                     >
                                         <div className="flex items-center gap-1.5 min-w-0">
                                             <span className={`text-sm font-medium truncate ${isPast && !(showCriticalPath && task.is_critical) ? 'text-text-faint' : 'text-text'
-                                                } ${showCriticalPath && task.is_critical && !task.completed ? 'text-danger' : ''}`}>
+                                                } ${showCriticalPath && task.is_critical && !task.completed ? 'text-danger' : ''}`}
+                                                title={task.name}
+                                            >
                                                 {task.name}
                                             </span>
                                             {task.notes && (
@@ -405,15 +416,10 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                                 transform: 'translateY(-50%)'
                                             }}
                                             onMouseEnter={(e) => {
-                                                const rect = e.currentTarget.getBoundingClientRect();
-                                                setHoveredTask({
-                                                    task,
-                                                    position: { x: rect.right, y: rect.top }
-                                                });
+                                                handleTaskMouseEnter(task, e.currentTarget.getBoundingClientRect());
                                             }}
-                                            onMouseLeave={() => setHoveredTask(null)}
-                                        // Removed raw title attribute in favor of TaskHoverCard
-                                        // title={`${task.name}...`} 
+                                            onMouseLeave={handleTaskMouseLeave}
+                                            onClick={() => onOpenDetails?.(task.id)}
                                         />
                                     </div>
                                 </div>
@@ -430,6 +436,13 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                             definition={definitions.find(d => d.id === hoveredTask.task.id)}
                             position={hoveredTask.position}
                             getTaskName={(id) => tasks.find(t => t.id === id)?.name || id}
+                            onMouseEnter={() => {
+                                if (hoverTimeoutRef.current) {
+                                    clearTimeout(hoverTimeoutRef.current);
+                                    hoverTimeoutRef.current = null;
+                                }
+                            }}
+                            onMouseLeave={handleTaskMouseLeave}
                         />
                     )
                 }
