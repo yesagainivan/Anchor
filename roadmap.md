@@ -66,6 +66,7 @@ Connect the simulated desktop widget to real backend data.
 ### System Tray & Lifecycle
 - [x] Run in background (Close hides window)
 - [x] System Tray menu (Show/Quit)
+- [x] Widget Tabs (Focus vs Up Next)
 
 
 ---

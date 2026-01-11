@@ -2,10 +2,9 @@ use crate::scheduler::Task;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri::Manager;
-use thiserror::Error;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -30,20 +29,31 @@ pub struct ProjectMetadata {
     pub status: String,
 }
 
-#[derive(Debug, Error)]
-pub enum ProjectError {
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("Serialization error: {0}")]
-    Serialization(#[from] serde_json::Error),
-    #[error("Project not found: {0}")]
-    NotFound(String),
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WidgetTask {
+    pub id: String,
+    pub name: String,
+    pub start_date: String,
+    pub end_date: String,
+    pub completed: bool,
+    pub status: String, // "active", "future", "overdue"
 }
 
-impl ProjectError {
-    pub fn to_string(&self) -> String {
-        format!("{}", self)
-    }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectSummary {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WidgetInfo {
+    pub project_id: String,
+    pub project_name: String,
+    pub next_deadline: Option<String>,
+    pub status: String,
+    pub current_focus: Option<String>,
+    pub upcoming_tasks: Vec<WidgetTask>,
+    pub all_projects: Vec<ProjectSummary>,
 }
 
 // Helper to get projects directory: app_data_dir/projects
@@ -245,4 +255,98 @@ pub fn get_next_deadline(app: AppHandle) -> Result<Option<ProjectMetadata>, Stri
     let projects = list_projects(app)?;
     // Return the first project since list_projects sorts by last_modified
     Ok(projects.first().cloned())
+}
+
+#[tauri::command]
+pub fn get_widget_info(
+    app: AppHandle,
+    project_id: Option<String>,
+) -> Result<Option<WidgetInfo>, String> {
+    // 1. Get all projects
+    let projects = list_projects(app.clone())?;
+
+    // 2. Determine target project
+    let target_metadata = if let Some(id) = project_id {
+        projects.iter().find(|p| p.id == id).cloned()
+    } else {
+        projects.first().cloned()
+    };
+
+    let metadata = match target_metadata {
+        Some(m) => m,
+        None => return Ok(None),
+    };
+
+    // 3. Prepare summary list for switching
+    let all_projects = projects
+        .iter()
+        .map(|p| ProjectSummary {
+            id: p.id.clone(),
+            name: p.name.clone(),
+        })
+        .collect();
+
+    // 4. Load full project for scheduling
+    let project = load_project(app, metadata.id.clone())?;
+
+    // 5. Calculate schedule
+    let req = crate::scheduler::ScheduleRequest {
+        tasks: project.tasks.clone(),
+        anchors: project.anchors.clone(),
+    };
+
+    let schedule =
+        crate::scheduler::calculate_backwards_schedule(req).map_err(|e| e.to_string())?;
+
+    let today = chrono::Local::now().date_naive();
+
+    // 6. Process tasks for "Up Next" list
+    let mut upcoming_tasks = Vec::new();
+
+    // Filter and sort tasks
+    let mut sorted_tasks: Vec<_> = schedule.into_iter().collect();
+    sorted_tasks.sort_by(|a, b| a.start_date.cmp(&b.start_date)); // Sort by start date
+
+    for task in sorted_tasks {
+        if task.completed {
+            continue;
+        }
+
+        if let (Ok(start), Ok(end)) = (
+            chrono::NaiveDate::parse_from_str(&task.start_date, "%Y-%m-%d"),
+            chrono::NaiveDate::parse_from_str(&task.end_date, "%Y-%m-%d"),
+        ) {
+            // Only show tasks that end today or in the future
+            if end >= today {
+                let status = if end < today {
+                    "overdue".to_string()
+                } else if start <= today && end >= today {
+                    "active".to_string()
+                } else {
+                    "future".to_string()
+                };
+
+                upcoming_tasks.push(WidgetTask {
+                    id: task.id,
+                    name: task.name,
+                    start_date: task.start_date,
+                    end_date: task.end_date,
+                    completed: task.completed,
+                    status,
+                });
+            }
+        }
+    }
+
+    let top_tasks = upcoming_tasks.into_iter().take(5).collect();
+
+    Ok(Some(WidgetInfo {
+        project_id: metadata.id.clone(),
+        project_name: metadata.name.clone(),
+        next_deadline: metadata.next_deadline.clone(),
+        status: metadata.status.clone(),
+        current_focus: metadata.current_focus.clone(),
+        upcoming_tasks: top_tasks,
+        all_projects,
+    }))
 }

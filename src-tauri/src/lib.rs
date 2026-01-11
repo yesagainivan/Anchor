@@ -85,7 +85,8 @@ pub fn run() {
             project::delete_project,
             config::load_config,
             config::save_config,
-            project::get_next_deadline
+            project::get_next_deadline,
+            project::get_widget_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
