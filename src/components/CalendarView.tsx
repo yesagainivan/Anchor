@@ -180,6 +180,12 @@ export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
                         resizable={false}
                         eventPropGetter={eventPropGetter}
                         draggableAccessor={() => true}
+                        formats={{
+                            timeGutterFormat: (date: Date, culture?: string, localizer?: any) =>
+                                localizer.format(date, 'h aa', culture),
+                            dayFormat: (date: Date, culture?: string, localizer?: any) =>
+                                localizer.format(date, 'EEE d', culture),
+                        }}
                     />
                 )}
             </div>

@@ -114,6 +114,8 @@
 }
 
 /* Time Grid overrides */
+
+/* Time Grid overrides */
 .rbc-time-view {
     border: 1px solid var(--rbc-border);
     border-radius: 0.75rem;
@@ -125,21 +127,101 @@
     border-bottom: 1px solid var(--rbc-border);
 }
 
+.rbc-time-header-content {
+    border-left: 1px solid var(--rbc-border-muted);
+}
+
+.rbc-time-header.rbc-overflowing {
+    border-right: none;
+}
+
 .rbc-time-content {
     border-top: 1px solid var(--rbc-border-muted);
 }
 
 .rbc-timeslot-group {
     border-bottom: 1px solid var(--rbc-border-muted);
+    border-left: 1px solid var(--rbc-border-muted);
+    min-height: 50px;
+    /* Give more breathing room */
 }
 
 .rbc-day-slot .rbc-time-slot {
-    border-top: 1px solid var(--rbc-border-muted);
+    border-top: 1px solid color-mix(in srgb, var(--rbc-border-muted) 30%, transparent);
 }
 
 .rbc-time-view-resources .rbc-time-gutter,
 .rbc-time-view-resources .rbc-time-header-gutter {
     border-right: 1px solid var(--rbc-border);
+}
+
+/* Time Gutter (Left Axis) */
+.rbc-time-gutter .rbc-timeslot-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    border-bottom: none;
+    /* Cleaner look */
+}
+
+.rbc-time-gutter .rbc-label {
+    font-size: 0.75rem;
+    color: var(--rbc-text-muted);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Header Cells in Time Grid */
+.rbc-header {
+    border-bottom: none;
+    padding: 12px 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--rbc-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rbc-header.rbc-today {
+    color: var(--color-brand);
+    background-color: transparent;
+    /* Remove default highlighting to do our own */
+}
+
+.rbc-header.rbc-today span {
+    border-bottom: 2px solid var(--color-brand);
+    padding-bottom: 2px;
+}
+
+/* Day Columns */
+.rbc-day-slot {
+    border-left: 1px solid var(--rbc-border-muted);
+}
+
+.rbc-day-slot.rbc-today {
+    background-color: color-mix(in srgb, var(--color-brand) 3%, transparent);
+}
+
+/* Current Time Indicator */
+.rbc-current-time-indicator {
+    background-color: var(--color-brand);
+    height: 2px;
+}
+
+.rbc-current-time-indicator::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--color-brand);
 }
 
 /* Fix for overlapping events text */

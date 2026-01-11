@@ -249,3 +249,7 @@ body,
 button {
   cursor: pointer;
 }
+
+.rbc-label {
+  color: var(--color-text);
+}
