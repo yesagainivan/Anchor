@@ -67,4 +67,4 @@ See [roadmap.md](./roadmap.md) for the active development plan.
 
 ---
 
-*Designed with <3 by Ivy & Gemini.*
+*Designed with <3 by Ivan & Gemini.*
