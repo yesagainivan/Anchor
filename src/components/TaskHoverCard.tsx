@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ScheduledTask, Task } from '../types';
 import { useRef, useEffect, useState } from 'react';
+import { AlertIcon } from './icons';
 
 interface TaskHoverCardProps {
     task: ScheduledTask;
@@ -62,16 +63,42 @@ export function TaskHoverCard({ task, definition, position, getTaskName }: TaskH
                     <h4 className="font-semibold text-text text-sm leading-tight mb-0.5">
                         {task.name}
                     </h4>
-                    <div className="flex items-center gap-2 text-xs">
-                        <span className={`px-1.5 py-0.5 rounded-full font-medium ${task.completed
-                            ? 'bg-success/15 text-success'
-                            : task.is_critical
-                                ? 'bg-danger/15 text-danger'
-                                : 'bg-brand/15 text-brand-hover'
-                            }`}>
-                            {task.completed ? 'Completed' : task.is_critical ? 'Critical' : 'Scheduled'}
-                        </span>
-                        <span className="text-text-muted">
+                    <div className="flex flex-wrap items-center gap-2 text-xs mt-1.5">
+                        {/* Status Chip */}
+                        {(() => {
+                            const now = new Date();
+                            now.setHours(0, 0, 0, 0); // Normalized to midnight
+
+                            let statusLabel = 'Planned';
+                            let statusClass = 'bg-surface-alt/50 text-text-muted';
+
+                            if (task.completed) {
+                                statusLabel = 'Completed';
+                                statusClass = 'bg-success/15 text-success';
+                            } else if (end < now) {
+                                statusLabel = 'Overdue';
+                                statusClass = 'bg-danger/15 text-danger';
+                            } else if (start <= now && end >= now) {
+                                statusLabel = 'In Progress';
+                                statusClass = 'bg-brand/15 text-brand-hover';
+                            }
+
+                            return (
+                                <span className={`px-2 py-0.5 rounded-full font-medium ${statusClass}`}>
+                                    {statusLabel}
+                                </span>
+                            );
+                        })()}
+
+                        {/* Critical Path Badge */}
+                        {task.is_critical && !task.completed && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-600 font-medium border border-orange-200/50">
+                                <AlertIcon className="w-3 h-3" />
+                                Critical Path
+                            </span>
+                        )}
+
+                        <span className="text-text-muted ml-auto">
                             {duration} day{duration !== 1 ? 's' : ''}
                         </span>
                     </div>

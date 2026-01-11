@@ -29,6 +29,7 @@ interface WidgetInfo {
     upcoming_tasks: WidgetTask[];
     calendar_tasks: WidgetTask[];
     all_projects: ProjectSummary[];
+    task_progress: number | null;
 }
 
 function WidgetApp() {
@@ -142,7 +143,7 @@ function WidgetApp() {
             className="h-screen w-screen bg-surface/40 rounded-2xl border border-border/10 overflow-hidden flex flex-col select-none cursor-default relative transition-colors duration-300 backdrop-blur-md"
         >
             {/* Header / Tabs */}
-            <div data-tauri-drag-region className="flex items-center justify-between px-4 py-2 bg-surface-alt/50 border-b border-border/5 cursor-grab active:cursor-grabbing">
+            <div data-tauri-drag-region className="flex items-center justify-between px-4 py-2 bg-surface-alt/20 border-b border-border/5 cursor-grab active:cursor-grabbing">
                 <div className="flex items-center gap-1">
                     {info.all_projects.length > 1 ? (
                         <>
@@ -163,24 +164,24 @@ function WidgetApp() {
                         </>
                     ) : null}
                 </div>
-                <div className="flex gap-1 bg-surface-alt/80 rounded-lg p-0.5">
+                <div className="flex gap-1 bg-surface-alt/20 rounded-lg p-0.5">
                     <button
                         onClick={() => setActiveTab('focus')}
-                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${activeTab === 'focus' ? 'bg-surface shadow-sm text-text' : 'text-text-muted hover:text-text'
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${activeTab === 'focus' ? 'bg-surface/30 shadow-sm text-text' : 'text-text-muted hover:text-text'
                             }`}
                     >
                         Focus
                     </button>
                     <button
                         onClick={() => setActiveTab('list')}
-                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${activeTab === 'list' ? 'bg-surface shadow-sm text-text' : 'text-text-muted hover:text-text'
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${activeTab === 'list' ? 'bg-surface/30 shadow-sm text-text' : 'text-text-muted hover:text-text'
                             }`}
                     >
                         Up Next
                     </button>
                     <button
                         onClick={() => setActiveTab('calendar')}
-                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${activeTab === 'calendar' ? 'bg-surface shadow-sm text-text' : 'text-text-muted hover:text-text'
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${activeTab === 'calendar' ? 'bg-surface/30 shadow-sm text-text' : 'text-text-muted hover:text-text'
                             }`}
                     >
                         Month
@@ -199,12 +200,14 @@ function WidgetApp() {
                             </div>
                         </div>
 
+                        {/* Label: Changes if completed */}
                         <div className="text-xs font-medium text-text-muted uppercase tracking-widest mb-1 pointer-events-none mt-2">
-                            Next Anchor
+                            {info.task_progress === 1.0 ? "Current Task" : "Next Task"}
                         </div>
 
-                        <div className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${getStatusColor()} pb-1 pointer-events-none text-center truncate w-full px-2`}>
-                            {getDaysText()}
+                        {/* Status Text */}
+                        <div className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${info.task_progress === 1.0 ? "from-emerald-400 to-green-500" : getStatusColor()} pb-1 pointer-events-none text-center truncate w-full px-2`}>
+                            {info.task_progress === 1.0 ? "Completed" : getDaysText()}
                         </div>
 
                         {info.current_focus && (
@@ -213,9 +216,12 @@ function WidgetApp() {
                             </div>
                         )}
 
-                        {/* Decorative timeline line */}
-                        <div className="w-full h-1 bg-border-muted mt-6 rounded-full overflow-hidden opacity-50 pointer-events-none">
-                            <div className={`h-full bg-gradient-to-r ${getStatusColor()} w-2/3 rounded-full`} />
+                        {/* Progress Bar */}
+                        <div className="w-full h-1 bg-border-muted mt-6 rounded-full overflow-hidden opacity-50 pointer-events-none relative">
+                            <div
+                                className={`h-full bg-gradient-to-r ${info.task_progress === 1.0 ? "from-emerald-400 to-green-500" : getStatusColor()} rounded-full transition-all duration-500 ease-out`}
+                                style={{ width: `${Math.round((info.task_progress || 0) * 100)}%` }}
+                            />
                         </div>
                     </div>
                 ) : activeTab === 'list' ? (

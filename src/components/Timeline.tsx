@@ -372,7 +372,8 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                 barClass = 'bg-text-faint';
                             }
 
-                            const stickyBgClass = index % 2 === 0 ? 'bg-surface' : 'bg-surface-alt/50';
+                            // const stickyBgClass = index % 2 === 0 ? 'bg-surface/50 backdrop-blur-sm' : 'bg-surface-alt/50 backdrop-blur-sm';
+                            const stickyBgClass = index % 2 === 0 ? 'bg-surface/70 backdrop-blur-xs shadow-[2px_0px_4px_rgba(0,0,0,0.1)]' : 'bg-surface-alt/70 backdrop-blur-xs shadow-[2px_0px_4px_rgba(0,0,0,0.1)]';
 
                             return (
                                 <div

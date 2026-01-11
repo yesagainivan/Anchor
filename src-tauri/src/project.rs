@@ -55,6 +55,7 @@ pub struct WidgetInfo {
     pub upcoming_tasks: Vec<WidgetTask>,
     pub calendar_tasks: Vec<WidgetTask>,
     pub all_projects: Vec<ProjectSummary>,
+    pub task_progress: Option<f32>,
 }
 
 // Helper to get projects directory: app_data_dir/projects
@@ -216,6 +217,8 @@ pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
                         }
                     }
 
+                    // Placeholder for list_projects, real calculation happens in get_widget_info
+
                     projects.push(ProjectMetadata {
                         id: project.id,
                         name: project.name,
@@ -305,7 +308,7 @@ pub fn get_widget_info(
     let mut upcoming_tasks = Vec::new();
 
     // Filter and sort tasks
-    let mut sorted_tasks: Vec<_> = schedule.into_iter().collect();
+    let mut sorted_tasks = schedule.clone();
     sorted_tasks.sort_by(|a, b| a.start_date.cmp(&b.start_date)); // Sort by start date
 
     for task in sorted_tasks {
@@ -342,6 +345,61 @@ pub fn get_widget_info(
     let calendar_tasks = upcoming_tasks.clone();
     let top_tasks = upcoming_tasks.into_iter().take(5).collect();
 
+    // Calculate Task Progress for the active/next task
+
+    // logic from list_projects reused partly here to find the "current" task for progress
+    // We need to re-find the "active" task from the full schedule
+    let mut active_or_next = schedule
+        .iter()
+        //.filter(|t| !t.completed) // We might want to show completion for the LAST completed task if everything is done?
+        // Actually, user wants to know if "the task" is completed.
+        // Let's find the first non-completed, OR the last completed if all are done?
+        // Simplest: Find the "Current Focus" task.
+        .filter_map(|t| {
+            let start = chrono::NaiveDate::parse_from_str(&t.start_date, "%Y-%m-%d").ok()?;
+            let end = chrono::NaiveDate::parse_from_str(&t.end_date, "%Y-%m-%d").ok()?;
+            // If we are IN the task range, it's the focus.
+            // If we are BEFORE the first task, that first task is the focus (0% progress).
+            Some((start, end, t))
+        })
+        .collect::<Vec<_>>();
+    active_or_next.sort_by_key(|(_, end, _)| *end);
+
+    // Find the task that matches "current_focus" name if possible, or just the first non-completed
+    let target_task_tuple = active_or_next.iter().find(|(start, end, t)| {
+        if t.completed {
+            return false;
+        } // prioritized uncompleted
+          // If today is in range, this is definitely it
+        if today >= *start && today <= *end {
+            return true;
+        }
+        // If today is before start, this is the upcoming one
+        if today < *start {
+            return true;
+        }
+        false
+    });
+
+    let task_progress = if let Some((start, end, task)) = target_task_tuple {
+        if task.completed {
+            Some(1.0f32)
+        } else {
+            let total_days = (*end - *start).num_days().max(1) as f32; // ensure at least 1 day duration so no div by 0
+            let elapsed = (today - *start).num_days().max(0) as f32;
+
+            let p = elapsed / total_days;
+            Some(p.clamp(0.0f32, 1.0f32))
+        }
+    } else {
+        // Maybe all tasks are completed? Check if there's ANY task
+        if !schedule.is_empty() && schedule.iter().all(|t| t.completed) {
+            Some(1.0f32) // Project done
+        } else {
+            Some(0.0f32) // Start of project
+        }
+    };
+
     Ok(Some(WidgetInfo {
         project_id: metadata.id.clone(),
         project_name: metadata.name.clone(),
@@ -351,5 +409,6 @@ pub fn get_widget_info(
         upcoming_tasks: top_tasks,
         calendar_tasks,
         all_projects,
+        task_progress,
     }))
 }
