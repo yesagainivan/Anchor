@@ -171,6 +171,33 @@ function App() {
               </button>
             </div>
             <ThemeToggle theme={theme as Theme} onThemeChange={(t) => setTheme(t)} />
+            <button
+              onClick={async () => {                   // Dynamic import to avoid SSR/build issues if package not present (though it is)
+                const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+
+                const widget = await WebviewWindow.getByLabel('widget');
+
+                if (widget) {
+                  // widget.msg('You clicked the widget button!'); // Placeholder
+                  widget.setFocus();
+                } else {
+                  // If not found (closed), Create it
+                  new WebviewWindow('widget', {
+                    url: 'widget.html',
+                    transparent: true,
+                    decorations: false,
+                    skipTaskbar: true,
+                    resizable: false,
+                    width: 300,
+                    height: 400
+                  });
+                }
+              }}
+              className="p-2 rounded-lg hover:bg-surface-alt text-text-muted text-xs uppercase font-bold tracking-wider"
+              title="Launch Widget"
+            >
+              WIDGET
+            </button>
           </div>
         </header>
 

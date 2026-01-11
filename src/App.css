@@ -234,7 +234,7 @@
 
 body {
   margin: 0;
-  background-color: var(--color-surface-alt);
+  background-color: transparent;
   color: var(--color-text);
 }
 
@@ -243,6 +243,7 @@ body,
 #root {
   height: 100%;
   overflow: hidden;
+  background-color: transparent;
 }
 
 button {

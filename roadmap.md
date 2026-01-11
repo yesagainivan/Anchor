@@ -12,6 +12,7 @@ A backwards scheduling app that works from your deadline, not from today.
 - [x] **Dark mode** — Full theme support
 - [x] **Show Today toggle** — Buffer zone visualization
 - [x] **Auto-recalculation** — No manual "Calculate" button needed
+- [x] **Desktop Widget (Alpha)** — Simluated floating window (Currently using mock data)
 
 ---
 
@@ -47,41 +48,20 @@ Week/Month view for long projects.
 
 ## 📝 Wishlist
 
-### The Simulation Approach (Desktop "Widgets")
-If we want a "widget" that floats on the desktop (similar to Rainmeter or old-school dashboard widgets), it might be much easier to simulate this by creating a specialized Tauri window.
+### Widget Data Connection
+Connect the simulated desktop widget to real backend data.
+- [ ] Implement query command for "Next Deadline"
+- [ ] Auto-refresh logic on widget focus
+- [ ] Shared state management between main app and widget
 
-#### Step 1: Configure the Window
-In your tauri.conf.json, you can define a window that is transparent, has no borders, and doesn't show up in the dock.
+#### Option B: Native Widget (WidgetKit)
+**Pros:** Best user experience, native integration (Notification Center, Desktop in Sonoma+), battery efficient.
+**Cons:** Requires Swift/SwiftUI, limited interactivity (toggles/buttons only), complex data sharing (App Groups).
 
-```JSON
-{
-  "tauri": {
-    "windows": [
-      {
-        "label": "widget",
-        "url": "index.html",
-        "transparent": true,
-        "decorations": false,
-        "skipTaskbar": true,
-        "alwaysOnTop": false,
-        "resizable": false
-      }
-    ],
-    "macosPrivateApi": true 
-  }
-}
-```
-Note: macosPrivateApi is often needed for advanced transparency/vibrancy effects.
-
-#### Step 2: Stick it to the Desktop
-To make it feel like a real widget that sits behind your windows but above the wallpaper, you can use the community plugin tauri-plugin-desktop-underlay. This plugin allows you to:
-
-Pin the window to the desktop level.
-
-Ensure it stays visible when you use "Show Desktop" (Exposé).
-
-#### Step 3: Add Visual Polish
-To get that "frosted glass" macOS look, use a vibrancy plugin or the newer tauri-plugin-liquid-glass.
+**Implementation:**
+1. Add a Widget Extension target in Xcode.
+2. Use `tauri-plugin-store` or shared JSON files in an App Group to sync data between Rust core and the Swift widget.
+3. Use `reloadAllTimelines` to refresh data.
 
 ---
 

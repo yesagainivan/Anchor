@@ -18,7 +18,31 @@ fn schedule(request: ScheduleRequest) -> Result<Vec<ScheduledTask>, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_desktop_underlay::init())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            let app_handle = app.handle().clone();
+
+            // Listen for new windows to apply vibrancy
+            // OR just check if 'widget' exists directly if created at startup (it is in tauri.conf.json)
+            use tauri::Manager;
+            if let Some(window) = app.get_webview_window("widget") {
+                #[cfg(target_os = "macos")]
+                {
+                    use window_vibrancy::{
+                        apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState,
+                    };
+                    let _ = apply_vibrancy(
+                        &window,
+                        NSVisualEffectMaterial::HudWindow,
+                        Some(NSVisualEffectState::Active),
+                        Some(16.0),
+                    );
+                }
+            }
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             schedule,
             project::create_project,
