@@ -53,6 +53,7 @@ pub struct WidgetInfo {
     pub status: String,
     pub current_focus: Option<String>,
     pub upcoming_tasks: Vec<WidgetTask>,
+    pub calendar_tasks: Vec<WidgetTask>,
     pub all_projects: Vec<ProjectSummary>,
 }
 
@@ -338,6 +339,7 @@ pub fn get_widget_info(
         }
     }
 
+    let calendar_tasks = upcoming_tasks.clone();
     let top_tasks = upcoming_tasks.into_iter().take(5).collect();
 
     Ok(Some(WidgetInfo {
@@ -347,6 +349,7 @@ pub fn get_widget_info(
         status: metadata.status.clone(),
         current_focus: metadata.current_focus.clone(),
         upcoming_tasks: top_tasks,
+        calendar_tasks,
         all_projects,
     }))
 }

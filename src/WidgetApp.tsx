@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { differenceInDays, parseISO } from "date-fns";
 import { ChevronLeftIcon, ChevronRightIcon } from "./components/icons";
+import { MiniCalendar } from "./components/MiniCalendar";
+
 
 interface WidgetTask {
     id: string;
@@ -25,12 +27,13 @@ interface WidgetInfo {
     status: string;
     current_focus: string | null;
     upcoming_tasks: WidgetTask[];
+    calendar_tasks: WidgetTask[];
     all_projects: ProjectSummary[];
 }
 
 function WidgetApp() {
     const [info, setInfo] = useState<WidgetInfo | null>(null);
-    const [activeTab, setActiveTab] = useState<'focus' | 'list'>('focus');
+    const [activeTab, setActiveTab] = useState<'focus' | 'list' | 'calendar'>('focus');
 
     const fetchProject = async (projectId?: string) => {
         try {
@@ -158,10 +161,7 @@ function WidgetApp() {
                                 <ChevronRightIcon className="w-4 h-4" />
                             </button>
                         </>
-                    ) : (
-                        // Spacer to keep layout if only 1 project, or just empty
-                        null
-                    )}
+                    ) : null}
                 </div>
                 <div className="flex gap-1 bg-surface-alt/80 rounded-lg p-0.5">
                     <button
@@ -177,6 +177,13 @@ function WidgetApp() {
                             }`}
                     >
                         Up Next
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('calendar')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${activeTab === 'calendar' ? 'bg-surface shadow-sm text-text' : 'text-text-muted hover:text-text'
+                            }`}
+                    >
+                        Month
                     </button>
                 </div>
             </div>
@@ -211,7 +218,7 @@ function WidgetApp() {
                             <div className={`h-full bg-gradient-to-r ${getStatusColor()} w-2/3 rounded-full`} />
                         </div>
                     </div>
-                ) : (
+                ) : activeTab === 'list' ? (
                     <div className="flex-1 overflow-y-auto p-3 space-y-3 pretty-scrollbar">
                         <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2 pl-1 truncate">
                             {info.project_name}
@@ -269,10 +276,13 @@ function WidgetApp() {
                             </div>
                         )}
                     </div>
+                ) : (
+                    <MiniCalendar tasks={info.calendar_tasks} />
                 )}
             </div>
         </div>
     );
 }
+
 
 export default WidgetApp;
