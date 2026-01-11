@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ScheduledTask, Task } from '../types';
 import { differenceInDays, parseISO, format, addDays, isToday, isBefore } from 'date-fns';
-import { TodayIcon, FireIcon, MemoIcon } from './icons';
+import { TodayIcon, FireIcon, MemoIcon, DiamondIcon } from './icons';
 import { TaskHoverCard } from './TaskHoverCard';
 
 interface TimelineProps {
@@ -39,6 +39,25 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
         task: ScheduledTask;
         position: { x: number; y: number }
     } | null>(null);
+
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleTaskMouseEnter = (task: ScheduledTask, rect: DOMRect) => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+        setHoveredTask({
+            task,
+            position: { x: rect.right, y: rect.top }
+        });
+    };
+
+    const handleTaskMouseLeave = () => {
+        hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredTask(null);
+        }, 150); // Small delay to allow moving to card
+    };
 
     const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -171,24 +190,6 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
         setPixelsPerDay(Math.max(MIN_PIXELS_PER_DAY, current * 0.8));
     };
 
-    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    const handleTaskMouseEnter = (task: ScheduledTask, rect: DOMRect) => {
-        if (hoverTimeoutRef.current) {
-            clearTimeout(hoverTimeoutRef.current);
-            hoverTimeoutRef.current = null;
-        }
-        setHoveredTask({
-            task,
-            position: { x: rect.right, y: rect.top }
-        });
-    };
-
-    const handleTaskMouseLeave = () => {
-        hoverTimeoutRef.current = setTimeout(() => {
-            setHoveredTask(null);
-        }, 150); // Small delay to allow moving to card
-    };
 
     return (
         <div className="relative h-full flex flex-col bg-surface rounded-xl border border-border overflow-hidden">
@@ -377,6 +378,13 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                                 barClass = 'bg-text-faint';
                             }
 
+                            // Milestone Styling
+                            if (task.is_milestone) {
+                                barClass = task.completed
+                                    ? 'bg-success border-2 border-surface shadow-lg'
+                                    : 'bg-purple-500 border-2 border-surface shadow-lg';
+                            }
+
                             // const stickyBgClass = index % 2 === 0 ? 'bg-surface/50 backdrop-blur-sm' : 'bg-surface-alt/50 backdrop-blur-sm';
                             const stickyBgClass = index % 2 === 0 ? 'bg-surface/70 backdrop-blur-xs shadow-[2px_0px_4px_rgba(0,0,0,0.1)]' : 'bg-surface-alt/70 backdrop-blur-xs shadow-[2px_0px_4px_rgba(0,0,0,0.1)]';
 
@@ -391,6 +399,9 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                                         style={{ width: LABEL_WIDTH }}
                                     >
                                         <div className="flex items-center gap-1.5 min-w-0">
+                                            {task.is_milestone && (
+                                                <div className="w-2 h-2 rotate-45 bg-purple-500 shrink-0" />
+                                            )}
                                             <span className={`text-sm font-medium truncate ${isPast && !(showCriticalPath && task.is_critical) ? 'text-text-faint' : 'text-text'
                                                 } ${showCriticalPath && task.is_critical && !task.completed ? 'text-danger' : ''}`}
                                                 title={task.name}
@@ -408,7 +419,7 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
 
                                     <div className="flex-1 relative">
                                         <div
-                                            className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${barClass}`}
+                                            className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${barClass} flex items-center justify-center`}
                                             style={{
                                                 left: `${leftPct}%`,
                                                 width: `${Math.max(widthPct, 1.5)}%`,
@@ -420,7 +431,11 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                                             }}
                                             onMouseLeave={handleTaskMouseLeave}
                                             onClick={() => onOpenDetails?.(task.id)}
-                                        />
+                                        >
+                                            {task.is_milestone && (
+                                                <DiamondIcon className="w-3.5 h-3.5 text-white/90 drop-shadow-sm" />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );

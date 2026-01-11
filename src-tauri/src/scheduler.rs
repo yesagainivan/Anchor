@@ -20,6 +20,8 @@ pub struct Task {
     pub completed: bool,
     #[serde(default)]
     pub notes: Option<String>,
+    #[serde(default)]
+    pub is_milestone: bool,
 }
 
 /// A scheduled task with computed start and end dates.
@@ -33,6 +35,7 @@ pub struct ScheduledTask {
     pub notes: Option<String>,
     pub is_critical: bool,
     pub slack_days: i64,
+    pub is_milestone: bool,
 }
 
 /// Request to calculate a backwards schedule.
@@ -258,6 +261,7 @@ pub fn calculate_backwards_schedule(
                 notes: task.notes.clone(),
                 is_critical,
                 slack_days,
+                is_milestone: task.is_milestone,
             });
         }
     }
@@ -280,6 +284,7 @@ mod tests {
                     dependencies: vec![],
                     completed: false,
                     notes: None,
+                    is_milestone: false,
                 },
                 Task {
                     id: "b".into(),
@@ -288,6 +293,7 @@ mod tests {
                     dependencies: vec!["a".into()],
                     completed: false,
                     notes: None,
+                    is_milestone: false,
                 },
             ],
             anchors: [("b".into(), "2026-01-15".into())].into(),
@@ -308,6 +314,7 @@ mod tests {
                     dependencies: vec![],
                     completed: false,
                     notes: None,
+                    is_milestone: false,
                 },
                 Task {
                     id: "b".into(),
@@ -316,6 +323,7 @@ mod tests {
                     dependencies: vec!["a".into()],
                     completed: false,
                     notes: None,
+                    is_milestone: false,
                 },
             ],
             anchors: [("a".into(), "2026-01-15".into())].into(),

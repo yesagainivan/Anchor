@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Task, ScheduledTask } from '../types';
-import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, EditIcon } from './icons';
+import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, EditIcon, DiamondIcon } from './icons';
+import { Checkbox } from './Checkbox';
 import { format, parseISO } from 'date-fns';
 
 interface TaskDetailsViewProps {
@@ -24,6 +25,7 @@ export function TaskDetailsView({
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState('');
     const [editNotes, setEditNotes] = useState('');
+    const [isMilestoneEditing, setIsMilestoneEditing] = useState(false);
 
     // Find the task data
     const taskDef = tasks.find(t => t.id === taskId);
@@ -33,6 +35,7 @@ export function TaskDetailsView({
         if (taskDef) {
             setEditName(taskDef.name);
             setEditNotes(taskDef.notes || '');
+            setIsMilestoneEditing(taskDef.is_milestone || false);
         }
     }, [taskDef, isEditing]); // Reset when entering edit mode or task changes
 
@@ -51,7 +54,11 @@ export function TaskDetailsView({
         onUpdateTask({
             ...taskDef,
             name: editName,
-            notes: editNotes.trim() || undefined
+            notes: editNotes.trim() || undefined,
+            // Keep existing milestone status or allow toggle? 
+            // Let's assume for now we don't edit milestone status here, or we add a toggle.
+            // Adding toggle:
+            is_milestone: isMilestoneEditing
         });
         setIsEditing(false);
     };
@@ -77,16 +84,27 @@ export function TaskDetailsView({
                     </button>
                     <div className="flex-1">
                         {isEditing ? (
-                            <input
-                                className="text-2xl font-bold bg-surface-alt border border-border rounded px-2 py-1 w-full text-text focus:ring-2 focus:ring-brand outline-none"
-                                value={editName}
-                                onChange={e => setEditName(e.target.value)}
-                                placeholder="Task Name"
-                                autoFocus
-                            />
+                            <>
+                                <input
+                                    className="text-2xl font-bold bg-surface-alt border border-border rounded px-2 py-1 w-full text-text focus:ring-2 focus:ring-brand outline-none"
+                                    value={editName}
+                                    onChange={e => setEditName(e.target.value)}
+                                    placeholder="Task Name"
+                                    autoFocus
+                                />
+                                <div className="mt-2 flex items-center gap-2">
+                                    <Checkbox
+                                        checked={isMilestoneEditing}
+                                        onChange={setIsMilestoneEditing}
+                                        label="Mark as Milestone"
+                                        className="text-sm text-text"
+                                    />
+                                </div>
+                            </>
                         ) : (
                             <h2 className={`text-2xl font-bold text-text flex items-center gap-3 ${taskDef.completed ? 'line-through opacity-60' : ''}`}>
                                 {taskDef.name}
+                                {taskDef.is_milestone && <span className="text-base font-normal no-underline px-2 py-0.5 bg-purple-500/10 text-purple-500 rounded-full text-xs border border-purple-500/20 flex items-center gap-1">Milestone <DiamondIcon className="w-3 h-3" /></span>}
                                 {taskDef.completed && <span className="text-base font-normal no-underline px-2 py-0.5 bg-success/10 text-success rounded-full text-xs">Completed</span>}
                             </h2>
                         )}
@@ -184,6 +202,6 @@ export function TaskDetailsView({
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -5,6 +5,7 @@ export interface Task {
     dependencies: string[];
     completed?: boolean;
     notes?: string;
+    is_milestone?: boolean;
 }
 
 export interface ScheduledTask {
@@ -16,6 +17,7 @@ export interface ScheduledTask {
     notes?: string;
     is_critical: boolean;
     slack_days: number;
+    is_milestone: boolean;
 }
 
 export interface ScheduleRequest {
