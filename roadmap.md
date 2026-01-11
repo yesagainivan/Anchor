@@ -13,6 +13,8 @@ A backwards scheduling app that works from your deadline, not from today.
 - [x] **Show Today toggle** — Buffer zone visualization
 - [x] **Auto-recalculation** — No manual "Calculate" button needed
 - [x] **Desktop Widget (Alpha)** — Simluated floating window (Currently using mock data)
+- [/] **Logo & Branding** — Designing application identity
+
 
 ---
 

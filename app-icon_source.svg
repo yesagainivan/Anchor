@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Centered by shifting Y+60px -->
+  <g transform="translate(0, 60)">
+    <!-- The Main Anchor Spiral -->
+    <path d="M256 100V350" stroke="#fcd34d" stroke-width="12" stroke-linecap="round"/>
+    <path d="M256 350C180 350 120 290 120 216C120 140 180 80 256 80C332 80 392 140 392 216C392 290 332 350 256 350" stroke="#fcd34d" stroke-width="20" stroke-linecap="round" fill="none"/>
+    
+    <!-- Ticks -->
+    <circle cx="392" cy="216" r="16" fill="#fcd34d"/>
+    <circle cx="256" cy="350" r="16" fill="#fcd34d"/>
+    <circle cx="120" cy="216" r="16" fill="#fcd34d"/>
+    
+    <!-- Inner Loop -->
+    <path d="M256 350C290 350 320 320 320 280C320 250 290 230 256 230" stroke="#fcd34d" stroke-width="12" stroke-linecap="round" stroke-opacity="0.6"/>
+
+    <!-- Number 15 at top (The Anchor Head) -->
+    <circle cx="256" cy="65" r="45" fill="#fcd34d"/>
+    <text x="256" y="80" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="48" fill="#0f172a" letter-spacing="-2">15</text>
+  </g>
+</svg>

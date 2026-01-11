@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# logos & icons
+
+/logo/*
+/src-tauri/icons/*

@@ -288,7 +288,7 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
 
                             {todayPct !== null && (
                                 <div
-                                    className="absolute top-0 bottom-0 w-0.5 bg-danger z-20"
+                                    className="absolute top-0 bottom-0 w-0.5 bg-danger z-200"
                                     style={{ left: `${todayPct}%` }}
                                 >
                                     <div className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-danger" />
