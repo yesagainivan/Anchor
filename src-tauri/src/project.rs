@@ -18,7 +18,7 @@ pub struct Project {
     pub anchors: HashMap<String, String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectMetadata {
     pub id: String,
     pub name: String,
@@ -79,6 +79,11 @@ pub fn save_project(app: AppHandle, mut project: Project) -> Result<(), String> 
     let path = dir.join(format!("{}.json", project.id));
     let json = serde_json::to_string_pretty(&project).map_err(|e| e.to_string())?;
     fs::write(path, json).map_err(|e| e.to_string())?;
+
+    // Emit update event
+    use tauri::Emitter;
+    let _ = app.emit("project-update", ());
+
     Ok(())
 }
 
@@ -227,6 +232,17 @@ pub fn delete_project(app: AppHandle, id: String) -> Result<(), String> {
     let path = dir.join(format!("{}.json", id));
     if path.exists() {
         fs::remove_file(path).map_err(|e| e.to_string())?;
+
+        // Emit update event
+        use tauri::Emitter;
+        let _ = app.emit("project-update", ());
     }
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_next_deadline(app: AppHandle) -> Result<Option<ProjectMetadata>, String> {
+    let projects = list_projects(app)?;
+    // Return the first project since list_projects sorts by last_modified
+    Ok(projects.first().cloned())
 }

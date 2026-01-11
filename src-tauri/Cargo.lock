@@ -33,6 +33,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchor"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-desktop-underlay",
+ "tauri-plugin-opener",
+ "thiserror 1.0.69",
+ "uuid",
+ "window-vibrancy 0.7.1",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3530,22 +3546,6 @@ dependencies = [
  "webview2-com",
  "window-vibrancy 0.6.0",
  "windows",
-]
-
-[[package]]
-name = "tauri-app"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-desktop-underlay",
- "tauri-plugin-opener",
- "thiserror 1.0.69",
- "uuid",
- "window-vibrancy 0.7.1",
 ]
 
 [[package]]

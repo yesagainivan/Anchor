@@ -154,6 +154,23 @@ export function useProject(projectId: string | null) {
         });
     };
 
+    // Update anchor date for all anchors
+    const updateAnchorDate = (newDate: string) => {
+        setAnchorDate(newDate);
+        if (project) {
+            isDirty.current = true;
+            setProject(p => {
+                if (!p) return null;
+                const newAnchors: Record<string, string> = {};
+                // Update all existing anchors to the new date
+                Object.keys(p.anchors).forEach(key => {
+                    newAnchors[key] = newDate;
+                });
+                return { ...p, anchors: newAnchors };
+            });
+        }
+    };
+
     // Derived state for UI
     const anchorTaskIds = project ? Object.keys(project.anchors) : [];
 
@@ -163,7 +180,7 @@ export function useProject(projectId: string | null) {
         loading,
         error,
         anchorDate,
-        setAnchorDate,
+        setAnchorDate: updateAnchorDate,
         addTask,
         removeTask,
         editTask,

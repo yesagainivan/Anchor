@@ -50,11 +50,11 @@ Week/Month view for long projects.
 
 ### Widget Data Connection
 Connect the simulated desktop widget to real backend data.
-- [ ] Implement query command for "Next Deadline"
-- [ ] Auto-refresh logic on widget focus
-- [ ] Shared state management between main app and widget
+- [x] Implement query command for "Next Deadline"
+- [x] Auto-refresh logic on widget focus
+- [x] Shared state management between main app and widget (Event-Driven)
 
-#### Option B: Native Widget (WidgetKit)
+#### Option B: Native Widget (WidgetKit) Might consider this in the future but currently not a priority
 **Pros:** Best user experience, native integration (Notification Center, Desktop in Sonoma+), battery efficient.
 **Cons:** Requires Swift/SwiftUI, limited interactivity (toggles/buttons only), complex data sharing (App Groups).
 
@@ -62,6 +62,11 @@ Connect the simulated desktop widget to real backend data.
 1. Add a Widget Extension target in Xcode.
 2. Use `tauri-plugin-store` or shared JSON files in an App Group to sync data between Rust core and the Swift widget.
 3. Use `reloadAllTimelines` to refresh data.
+
+### System Tray & Lifecycle
+- [x] Run in background (Close hides window)
+- [x] System Tray menu (Show/Quit)
+
 
 ---
 

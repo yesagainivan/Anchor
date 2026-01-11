@@ -177,7 +177,8 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
     return (
         <div className="relative h-full flex flex-col bg-surface rounded-xl border border-border overflow-hidden">
             {/* Floating Top Right Toolbar */}
-            <div className="absolute top-4 right-4 z-50 flex items-center gap-2 bg-surface-alt/20 backdrop-blur-sm border border-border shadow-sm p-1.5 rounded-lg select-none">
+            {/* <div className="absolute  top-4 right-4 z-50 flex items-center gap-2 bg-surface-alt/20 backdrop-blur-sm border border-border shadow-sm p-1.5 rounded-lg select-none"> */}
+            <div className="absolute  bottom-4 right-4 z-50 flex items-center gap-2 bg-surface-alt/20 backdrop-blur-sm border border-border shadow-sm p-1.5 rounded-lg select-none">
                 {/* Zoom Controls */}
                 <div className="flex items-center gap-0.5 border-r border-border-muted pr-2 mr-1">
                     <button

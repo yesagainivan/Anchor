@@ -21,7 +21,7 @@ pub fn run() {
         .plugin(tauri_plugin_desktop_underlay::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let app_handle = app.handle().clone();
+            // let app_handle = app.handle().clone();
 
             // Listen for new windows to apply vibrancy
             // OR just check if 'widget' exists directly if created at startup (it is in tauri.conf.json)
@@ -41,7 +41,40 @@ pub fn run() {
                 }
             }
 
+            // Tray Setup
+            use tauri::menu::{Menu, MenuItem};
+            use tauri::tray::TrayIconBuilder;
+
+            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let show_i = MenuItem::with_id(app, "show", "Show Anchor", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+
+            let _tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .icon(app.default_window_icon().unwrap().clone())
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    _ => {}
+                })
+                .build(app)?;
+
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             schedule,
@@ -51,7 +84,8 @@ pub fn run() {
             project::list_projects,
             project::delete_project,
             config::load_config,
-            config::save_config
+            config::save_config,
+            project::get_next_deadline
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
