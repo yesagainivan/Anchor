@@ -151,11 +151,6 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
 
     const totalWidth = effectivePixelsPerDay * totalDays;
 
-    // Helper to convert date to pixel offset/percentage
-    // We now use pixels for absolute positioning if we are scrolling horizontally
-    // But keeping percentage-based logic is easier if we just set the parent width?
-    // Let's us CSS percentage logic but set the width of the inner container dynamically.
-
     // If we're larger than 'fit', we need to set a width on the content container
     const contentWidth = Math.max(timelineWidth, totalWidth);
 

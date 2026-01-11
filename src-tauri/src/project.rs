@@ -353,15 +353,10 @@ pub fn get_widget_info(
     // We need to re-find the "active" task from the full schedule
     let mut active_or_next = schedule
         .iter()
-        //.filter(|t| !t.completed) // We might want to show completion for the LAST completed task if everything is done?
-        // Actually, user wants to know if "the task" is completed.
-        // Let's find the first non-completed, OR the last completed if all are done?
-        // Simplest: Find the "Current Focus" task.
         .filter_map(|t| {
             let start = chrono::NaiveDate::parse_from_str(&t.start_date, "%Y-%m-%d").ok()?;
             let end = chrono::NaiveDate::parse_from_str(&t.end_date, "%Y-%m-%d").ok()?;
-            // If we are IN the task range, it's the focus.
-            // If we are BEFORE the first task, that first task is the focus (0% progress).
+
             Some((start, end, t))
         })
         .collect::<Vec<_>>();

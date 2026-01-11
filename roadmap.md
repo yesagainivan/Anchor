@@ -12,8 +12,8 @@ A backwards scheduling app that works from your deadline, not from today.
 - [x] **Dark mode** — Full theme support
 - [x] **Show Today toggle** — Buffer zone visualization
 - [x] **Auto-recalculation** — No manual "Calculate" button needed
-- [x] **Desktop Widget (Alpha)** — Simluated floating window (Currently using mock data)
-- [/] **Logo & Branding** — Designing application identity
+- [x] **Desktop Widget (Alpha)** — Simluated floating window
+- [x] **Logo & Branding** — Designing application identity
 
 
 ---
@@ -55,6 +55,8 @@ Connect the simulated desktop widget to real backend data.
 - [x] Implement query command for "Next Deadline"
 - [x] Auto-refresh logic on widget focus
 - [x] Shared state management between main app and widget (Event-Driven)
+- [x] Project Switching
+- [x] Visual Task Progress (Circular indicator)
 
 #### Option B: Native Widget (WidgetKit) Might consider this in the future but currently not a priority
 **Pros:** Best user experience, native integration (Notification Center, Desktop in Sonoma+), battery efficient.
@@ -77,14 +79,14 @@ Connect the simulated desktop widget to real backend data.
 
 ### Task Notes System
 Markdown-supported notes for individual tasks.
-- [ ] Add `notes` field to backend
-- [ ] UI for editing notes (Task Form)
-- [ ] UI for viewing notes (Hover/Details)
+- [x] Add `notes` field to backend
+- [x] UI for editing notes (Task Form)
+- [x] UI for viewing notes (Hover/Details)
 
 ### Milestone Markers
 Visual celebration of key dates.
-- [ ] Mark tasks as milestones
-- [ ] Diamond/flag markers on timeline
+- [x] Mark tasks as milestones
+- [x] Diamond/flag markers on timeline
 
 ### Keyboard Shortcuts
 Power user efficiency.

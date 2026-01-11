@@ -55,10 +55,7 @@ export function MiniCalendar({ tasks }: MiniCalendarProps) {
         // Simple check if any task falls on this day
         // This could be optimized if task list is huge, but for widget tasks it's likely fine
         const dayTasks = tasks.filter(task => {
-            // Very naive check: is the day start or end date?
-            // Or is it within range? For a mini calendar, dots for distinct events usually strictly match dates or exist within range.
-            // Let's just check if it matches start or end or is "today" for due date.
-            // Adjusting logic: Check if day is between start and end (inclusive)
+            // Check if day is between start and end (inclusive) Naive check
             const start = parseISO(task.start_date);
             const end = parseISO(task.end_date);
             return (day >= start && day <= end) || isSameDay(day, start) || isSameDay(day, end);

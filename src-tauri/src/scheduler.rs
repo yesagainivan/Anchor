@@ -77,9 +77,7 @@ pub fn calculate_backwards_schedule(
         .collect();
 
     // --- Backward Pass (Calculate Late Start/Finish) ---
-
     // Build reverse dependency map: provider -> consumers (to find roots for backward pass)
-    // Actually, for backward pass "roots" are anchors.
     let mut dependents: HashMap<String, Vec<String>> = HashMap::new();
     for task in &request.tasks {
         for dep_id in &task.dependencies {
