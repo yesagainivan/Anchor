@@ -41,3 +41,25 @@ Anchor uses **GitHub Actions** to automate the production release process.
 - Go to the **Actions** tab on GitHub to watch the build progress.
 - Once green, go to the **Releases** page to see the new draft.
 - Publish the release to make it available to users!
+
+## Troubleshooting: Unsigned Builds
+
+Since this application is not yet signed with an Apple Developer ID, users will see a "Damaged" or "Malicious Software" warning when trying to open it.
+
+### Option A: The "Right Click" Trick (easiest)
+1.  **Right-click** (or Control-click) the app icon.
+2.  Select **Open** from the menu.
+3.  Click **Open** in the dialog box.
+
+### Option B: System Settings
+1.  Open **System Settings** > **Privacy & Security**.
+2.  Scroll down to the Security section.
+3.  You should see a message about "Anchor" being blocked. Click **Open Anyway**.
+
+### Option C: The Command Line (Bypass Gatekeeper)
+If the above methods fail, you can remove the quarantine attribute manually in Terminal:
+
+```bash
+xattr -cr /Applications/Anchor.app
+```
+*(Replace `/Applications/Anchor.app` with the actual path to the app if different).*
