@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ScheduledTask, Task } from '../types';
 import { differenceInDays, parseISO, format, addDays, isToday, isBefore } from 'date-fns';
 import { TodayIcon, FireIcon } from './icons';
+import { TaskHoverCard } from './TaskHoverCard';
 
 interface TimelineProps {
     tasks: ScheduledTask[];
@@ -15,6 +16,12 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
     const [hasOverflow, setHasOverflow] = useState(false);
     const [showToday, setShowToday] = useState(false);
     const [showCriticalPath, setShowCriticalPath] = useState(false);
+
+    // Hover state
+    const [hoveredTask, setHoveredTask] = useState<{
+        task: ScheduledTask;
+        position: { x: number; y: number }
+    } | null>(null);
 
     // Check if content overflows container
     useEffect(() => {
@@ -288,9 +295,16 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                             top: '50%',
                                             transform: 'translateY(-50%)'
                                         }}
-                                        title={`${task.name}
-${format(start, 'MMM d')} – ${format(end, 'MMM d')}
-${task.is_critical ? 'CRITICAL PATH' : `Slack: ${task.slack_days} days`}`}
+                                        onMouseEnter={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            setHoveredTask({
+                                                task,
+                                                position: { x: rect.right, y: rect.top }
+                                            });
+                                        }}
+                                        onMouseLeave={() => setHoveredTask(null)}
+                                    // Removed raw title attribute in favor of TaskHoverCard
+                                    // title={`${task.name}...`} 
                                     />
                                 </div>
                             </div>
@@ -298,6 +312,16 @@ ${task.is_critical ? 'CRITICAL PATH' : `Slack: ${task.slack_days} days`}`}
                     })}
                 </div>
             </div>
+
+            {/* Hover Card Portal */}
+            {hoveredTask && (
+                <TaskHoverCard
+                    task={hoveredTask.task}
+                    definition={definitions.find(d => d.id === hoveredTask.task.id)}
+                    position={hoveredTask.position}
+                    getTaskName={(id) => tasks.find(t => t.id === id)?.name || id}
+                />
+            )}
         </div>
     );
 }
