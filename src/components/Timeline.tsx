@@ -39,29 +39,25 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
         position: { x: number; y: number }
     } | null>(null);
 
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
     useEffect(() => {
         const checkOverflow = () => {
-            // Can't check overflow easily without the ref to the element.
-            // But resizing handles 'fit' logic. hasOverflow is primarily for shadow?
-            // Let's rely on containerWidth vs totalWidth if possible?
-            // Or just check the ScrollHeight vs ClientHeight on the node in the ResizeObserver?
-            // Simpler: Just skip this secondary overflow check or move it to the resize observer callback.
-            // For now, let's just make it safe.
-            const node = document.querySelector('.timeline-scroll-container');
+            const node = containerRef.current;
             if (node) {
                 setHasOverflow(node.scrollHeight > node.clientHeight);
             }
         };
         checkOverflow();
-        window.addEventListener('resize', checkOverflow);
-        return () => window.removeEventListener('resize', checkOverflow);
-    }, [tasks, containerWidth]);
+    }, [tasks, containerWidth]); // Re-check when tasks change or width changes
 
 
 
     // Better approach: plain LayoutEffect with state tracking or Ref that holds the observer
     const observerRef = useRef<ResizeObserver | null>(null);
     const setContainerRef = useCallback((node: HTMLDivElement | null) => {
+        containerRef.current = node;
+
         if (observerRef.current) {
             observerRef.current.disconnect();
             observerRef.current = null;

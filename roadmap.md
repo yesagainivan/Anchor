@@ -90,7 +90,7 @@ Power user efficiency.
 - [ ] `N` for new task
 
 ### Data Persistence
-- [ ] Save/load projects
+- [x] Save/load projects (JSON-based)
 - [ ] Export to JSON/CSV
 - [ ] Undo/redo support
 

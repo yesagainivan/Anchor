@@ -151,10 +151,21 @@ pub fn calculate_backwards_schedule(
 
     // Verify all tasks were scheduled
     if backward_schedule.len() != request.tasks.len() {
-        // Find which tasks are missing - usually disconnected or cycles (though cycles checking is complex here)
-        // For now, if we have tasks that weren't reached from anchors, they won't have dates.
-        // This implies the graph is not fully connected to anchors.
-        // TODO: Handle disconnected subgraphs?
+        // Find which tasks are missing
+        let scheduled_ids: HashSet<_> = backward_schedule.keys().collect();
+        let missing_tasks: Vec<String> = request
+            .tasks
+            .iter()
+            .filter(|t| !scheduled_ids.contains(&t.id))
+            .map(|t| t.name.clone())
+            .collect();
+
+        if !missing_tasks.is_empty() {
+            return Err(ScheduleError::NoEndDateComputed(format!(
+                "Tasks not processing from anchors (disconnected?): {:?}",
+                missing_tasks
+            )));
+        }
     }
 
     // --- Forward Pass (Calculate Early Start/Finish) ---
@@ -278,5 +289,37 @@ mod tests {
 
         let result = calculate_backwards_schedule(request).unwrap();
         assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_disconnected_subgraph() {
+        let request = ScheduleRequest {
+            tasks: vec![
+                Task {
+                    id: "a".into(),
+                    name: "Task A".into(),
+                    duration_days: 5,
+                    dependencies: vec![],
+                    completed: false,
+                },
+                Task {
+                    id: "b".into(),
+                    name: "Task B".into(),
+                    duration_days: 3,
+                    dependencies: vec![], // Disconnected
+                    completed: false,
+                },
+            ],
+            anchors: [("a".into(), "2026-01-15".into())].into(),
+        };
+
+        let result = calculate_backwards_schedule(request);
+        assert!(result.is_err());
+        match result {
+            Err(ScheduleError::NoEndDateComputed(msg)) => {
+                assert!(msg.contains("Task B"));
+            }
+            _ => panic!("Expected NoEndDateComputed error"),
+        }
     }
 }
