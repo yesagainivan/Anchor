@@ -27,8 +27,10 @@ If you miss a start date, the "Ripple Effect" immediately shows how your buffer 
     -   **Timeline**: A fluid Gantt-style view for high-level planning.
     -   **Calendar**: A familiar monthly view for daily execution.
 -   **🛡️ Buffer Zones**: Visual "Safety Zones" show exactly how much slack you have before a task becomes critical.
+-   **💎 Milestones**: Visual celebration of key dates with diamond markers on the timeline.
+-   **📝 Task Notes**: Add rich Markdown notes to any task to keep details contextually relevant.
 -   **🌚 Dark Mode**: Fully themed UI that respects your system preferences.
--   **🧩 Desktop Widget**: (Alpha) A float-on-top widget to keep your next deadline always in focus.
+-   **🧩 Desktop Widget**: (Alpha) A float-on-top widget with **Project Switching** and **Visual Progress** to keep your goal in focus.
 
 ## Tech Stack
 
@@ -55,6 +57,9 @@ If you miss a start date, the "Ripple Effect" immediately shows how your buffer 
     ```bash
     npm run tauri dev
     ```
+
+### Release
+See [RELEASE.md](./RELEASE.md) for instructions on how to build and ship versioned releases.
 
 ## Roadmap
 
