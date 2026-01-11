@@ -73,10 +73,13 @@ Connect the simulated desktop widget to real backend data.
 
 ---
 
-## 💡 Nice to Have
+## 🔥 High Priority (Next)
 
-### Add a note system for tasks 
-*to be designed*
+### Task Notes System
+Markdown-supported notes for individual tasks.
+- [ ] Add `notes` field to backend
+- [ ] UI for editing notes (Task Form)
+- [ ] UI for viewing notes (Hover/Details)
 
 ### Milestone Markers
 Visual celebration of key dates.
@@ -91,8 +94,11 @@ Power user efficiency.
 
 ### Data Persistence
 - [x] Save/load projects (JSON-based)
-- [ ] Export to JSON/CSV
 - [ ] Undo/redo support
+
+### Import/Export (TBD)
+- [ ] Export to JSON/CSV
+- [ ] Import from JSON
 
 ---
 

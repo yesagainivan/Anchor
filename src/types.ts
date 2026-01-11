@@ -4,6 +4,7 @@ export interface Task {
     duration_days: number;
     dependencies: string[];
     completed?: boolean;
+    notes?: string;
 }
 
 export interface ScheduledTask {
@@ -12,6 +13,7 @@ export interface ScheduledTask {
     start_date: string;
     end_date: string;
     completed: boolean;
+    notes?: string;
     is_critical: boolean;
     slack_days: number;
 }

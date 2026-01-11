@@ -116,6 +116,16 @@ export function TaskHoverCard({ task, definition, position, getTaskName }: TaskH
                     </div>
                 </div>
 
+                {/* Notes */}
+                {task.notes && (
+                    <div className="bg-surface-alt/30 rounded p-2 mb-2 text-xs border border-border-muted/50">
+                        <span className="text-text-faint font-medium block mb-0.5">Notes</span>
+                        <div className="text-text-muted whitespace-pre-wrap max-h-32 overflow-y-auto custom-scrollbar">
+                            {task.notes}
+                        </div>
+                    </div>
+                )}
+
                 {/* Dependencies info */}
                 {definition && definition.dependencies.length > 0 && (
                     <div className="text-xs border-t border-border pt-2 mt-2">

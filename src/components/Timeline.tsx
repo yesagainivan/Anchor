@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ScheduledTask, Task } from '../types';
 import { differenceInDays, parseISO, format, addDays, isToday, isBefore } from 'date-fns';
-import { TodayIcon, FireIcon } from './icons';
+import { TodayIcon, FireIcon, MemoIcon } from './icons';
 import { TaskHoverCard } from './TaskHoverCard';
 
 interface TimelineProps {
@@ -381,10 +381,17 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
                                         className={`shrink-0 px-4 flex flex-col justify-center border-r border-border-muted/50 sticky left-0 z-20 ${stickyBgClass}`}
                                         style={{ width: LABEL_WIDTH }}
                                     >
-                                        <span className={`text-sm font-medium truncate ${isPast && !(showCriticalPath && task.is_critical) ? 'text-text-faint' : 'text-text'
-                                            } ${showCriticalPath && task.is_critical && !task.completed ? 'text-danger' : ''}`}>
-                                            {task.name}
-                                        </span>
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className={`text-sm font-medium truncate ${isPast && !(showCriticalPath && task.is_critical) ? 'text-text-faint' : 'text-text'
+                                                } ${showCriticalPath && task.is_critical && !task.completed ? 'text-danger' : ''}`}>
+                                                {task.name}
+                                            </span>
+                                            {task.notes && (
+                                                <span className="text-text-faint flex-shrink-0" title="Has notes">
+                                                    <MemoIcon className="w-3 h-3" />
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="text-xs text-text-faint">{duration}d</span>
                                     </div>
 

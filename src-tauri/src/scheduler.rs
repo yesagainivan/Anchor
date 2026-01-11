@@ -18,6 +18,8 @@ pub struct Task {
     pub dependencies: Vec<String>,
     #[serde(default)]
     pub completed: bool,
+    #[serde(default)]
+    pub notes: Option<String>,
 }
 
 /// A scheduled task with computed start and end dates.
@@ -28,6 +30,7 @@ pub struct ScheduledTask {
     pub start_date: String,
     pub end_date: String,
     pub completed: bool,
+    pub notes: Option<String>,
     pub is_critical: bool,
     pub slack_days: i64,
 }
@@ -252,6 +255,7 @@ pub fn calculate_backwards_schedule(
                 start_date: ls.to_string(),
                 end_date: lf.to_string(),
                 completed: task.completed,
+                notes: task.notes.clone(),
                 is_critical,
                 slack_days,
             });
@@ -275,6 +279,7 @@ mod tests {
                     duration_days: 5,
                     dependencies: vec![],
                     completed: false,
+                    notes: None,
                 },
                 Task {
                     id: "b".into(),
@@ -282,6 +287,7 @@ mod tests {
                     duration_days: 3,
                     dependencies: vec!["a".into()],
                     completed: false,
+                    notes: None,
                 },
             ],
             anchors: [("b".into(), "2026-01-15".into())].into(),
@@ -301,13 +307,15 @@ mod tests {
                     duration_days: 5,
                     dependencies: vec![],
                     completed: false,
+                    notes: None,
                 },
                 Task {
                     id: "b".into(),
                     name: "Task B".into(),
                     duration_days: 3,
-                    dependencies: vec![], // Disconnected
+                    dependencies: vec!["a".into()],
                     completed: false,
+                    notes: None,
                 },
             ],
             anchors: [("a".into(), "2026-01-15".into())].into(),

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Task } from '../types';
-import { AnchorIcon, CloseIcon, EditIcon, CheckIcon } from './icons';
+import { AnchorIcon, CloseIcon, EditIcon, CheckIcon, MemoIcon } from './icons';
 
 interface TaskFormProps {
     tasks: Task[];
@@ -26,6 +26,7 @@ export function TaskForm({
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState(1);
     const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
+    const [newTaskNotes, setNewTaskNotes] = useState('');
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
     const handleSubmit = () => {
@@ -39,6 +40,7 @@ export function TaskForm({
                 duration_days: newTaskDuration,
                 dependencies: selectedDependencies,
                 completed: originalTask?.completed || false,
+                notes: newTaskNotes.trim() || undefined,
             };
             onEditTask(updatedTask);
             setEditingTaskId(null);
@@ -48,6 +50,7 @@ export function TaskForm({
                 name: newTaskName.trim(),
                 duration_days: newTaskDuration,
                 dependencies: selectedDependencies,
+                notes: newTaskNotes.trim() || undefined,
             };
             onAddTask(newTask);
         }
@@ -55,6 +58,7 @@ export function TaskForm({
         setNewTaskName('');
         setNewTaskDuration(1);
         setSelectedDependencies([]);
+        setNewTaskNotes('');
     };
 
     const handleStartEdit = (task: Task) => {
@@ -62,6 +66,7 @@ export function TaskForm({
         setNewTaskName(task.name);
         setNewTaskDuration(task.duration_days);
         setSelectedDependencies(task.dependencies);
+        setNewTaskNotes(task.notes || '');
     };
 
     const handleCancelEdit = () => {
@@ -69,6 +74,7 @@ export function TaskForm({
         setNewTaskName('');
         setNewTaskDuration(1);
         setSelectedDependencies([]);
+        setNewTaskNotes('');
     };
 
     const toggleDependency = (taskId: string) => {
@@ -147,6 +153,16 @@ export function TaskForm({
                         </div>
                     )}
 
+                    <div>
+                        <label className="block text-xs text-text-muted mb-1">Notes</label>
+                        <textarea
+                            className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none min-h-[80px]"
+                            placeholder="Add details, requirements, or links (Markdown supported)"
+                            value={newTaskNotes}
+                            onChange={(e) => setNewTaskNotes(e.target.value)}
+                        />
+                    </div>
+
                     <div className="flex gap-2">
                         {editingTaskId && (
                             <button
@@ -224,6 +240,11 @@ export function TaskForm({
                                                     <span className="text-xs text-text-faint">
                                                         {task.duration_days}d
                                                     </span>
+                                                    {task.notes && (
+                                                        <span className="text-text-faint" title="Has notes">
+                                                            <MemoIcon className="w-3.5 h-3.5" />
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {deps.length > 0 && (
                                                     <p className={`text-xs text-text-muted mt-0.5 truncate ${task.completed ? 'line-through opacity-70' : ''}`}>
@@ -268,6 +289,6 @@ export function TaskForm({
                     </ul>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
