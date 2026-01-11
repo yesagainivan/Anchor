@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ScheduledTask, Task } from '../types';
 import { differenceInDays, parseISO, format, addDays, isToday, isBefore } from 'date-fns';
 import { TodayIcon, FireIcon } from './icons';
@@ -10,12 +10,28 @@ interface TimelineProps {
 }
 
 const LABEL_WIDTH = 140;
+const MIN_PIXELS_PER_DAY = 10;
+const MAX_PIXELS_PER_DAY = 200;
 
 export function Timeline({ tasks, definitions }: TimelineProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    // const containerRef = useRef<HTMLDivElement>(null); // Replaced by callback ref
     const [hasOverflow, setHasOverflow] = useState(false);
     const [showToday, setShowToday] = useState(false);
     const [showCriticalPath, setShowCriticalPath] = useState(false);
+    const [pixelsPerDay, setPixelsPerDay] = useState<number | 'fit'>(() => {
+        const saved = localStorage.getItem('anchor_zoom_level');
+        if (saved && saved !== 'fit') {
+            const parsed = parseFloat(saved);
+            return isNaN(parsed) ? 'fit' : parsed;
+        }
+        return (saved as 'fit') || 'fit';
+    });
+    const [containerWidth, setContainerWidth] = useState(0);
+
+    // Persist zoom level
+    useEffect(() => {
+        localStorage.setItem('anchor_zoom_level', String(pixelsPerDay));
+    }, [pixelsPerDay]);
 
     // Hover state
     const [hoveredTask, setHoveredTask] = useState<{
@@ -23,18 +39,42 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
         position: { x: number; y: number }
     } | null>(null);
 
-    // Check if content overflows container
     useEffect(() => {
         const checkOverflow = () => {
-            if (containerRef.current) {
-                const { scrollHeight, clientHeight } = containerRef.current;
-                setHasOverflow(scrollHeight > clientHeight);
+            // Can't check overflow easily without the ref to the element.
+            // But resizing handles 'fit' logic. hasOverflow is primarily for shadow?
+            // Let's rely on containerWidth vs totalWidth if possible?
+            // Or just check the ScrollHeight vs ClientHeight on the node in the ResizeObserver?
+            // Simpler: Just skip this secondary overflow check or move it to the resize observer callback.
+            // For now, let's just make it safe.
+            const node = document.querySelector('.timeline-scroll-container');
+            if (node) {
+                setHasOverflow(node.scrollHeight > node.clientHeight);
             }
         };
         checkOverflow();
         window.addEventListener('resize', checkOverflow);
         return () => window.removeEventListener('resize', checkOverflow);
-    }, [tasks]);
+    }, [tasks, containerWidth]);
+
+
+
+    // Better approach: plain LayoutEffect with state tracking or Ref that holds the observer
+    const observerRef = useRef<ResizeObserver | null>(null);
+    const setContainerRef = useCallback((node: HTMLDivElement | null) => {
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+        }
+
+        if (node) {
+            setContainerWidth(node.clientWidth);
+            observerRef.current = new ResizeObserver(() => {
+                setContainerWidth(node.clientWidth);
+            });
+            observerRef.current.observe(node);
+        }
+    }, []);
 
     if (tasks.length === 0) {
         return (
@@ -83,245 +123,312 @@ export function Timeline({ tasks, definitions }: TimelineProps) {
     const ROW_HEIGHT = 48;
     const totalHeight = sortedTasks.length * ROW_HEIGHT;
 
+    // Zoom Logic
+    // Default to at least something reasonable if width is 0 (initial mount)
+    const timelineWidth = Math.max(0, (containerWidth || 800) - LABEL_WIDTH);
+
+    // If 'fit', calculate pixels per day based on container width
+    // If specific number, use that
+    const effectivePixelsPerDay = pixelsPerDay === 'fit'
+        ? timelineWidth / totalDays
+        : pixelsPerDay;
+
+    const totalWidth = effectivePixelsPerDay * totalDays;
+
+    // Helper to convert date to pixel offset/percentage
+    // We now use pixels for absolute positioning if we are scrolling horizontally
+    // But keeping percentage-based logic is easier if we just set the parent width?
+    // Let's us CSS percentage logic but set the width of the inner container dynamically.
+
+    // If we're larger than 'fit', we need to set a width on the content container
+    const contentWidth = Math.max(timelineWidth, totalWidth);
+
     const getTaskIndex = (id: string) => sortedTasks.findIndex(t => t.id === id);
 
-    const dateMarkers: { date: Date; pct: number }[] = [];
-    const markerCount = Math.min(5, totalDays);
-    for (let i = 0; i < markerCount; i++) {
-        // Use full range distribution
-        const dayOffset = Math.round((i / (markerCount - 1)) * (totalDays - 1));
-        const date = addDays(rangeStart, dayOffset);
+    const dateMarkers: { date: Date; left: number }[] = [];
+
+    // Dynamic marker density based on zoom level
+    let markerStep = 1; // days
+    if (effectivePixelsPerDay < 15) markerStep = 14; // every 2 weeks
+    else if (effectivePixelsPerDay < 30) markerStep = 7; // weekly
+    else if (effectivePixelsPerDay < 60) markerStep = 2; // every other day
+
+    for (let i = 0; i < totalDays; i += markerStep) {
+        const date = addDays(rangeStart, i);
         dateMarkers.push({
             date,
-            pct: (dayOffset / totalDays) * 100
+            left: (i / totalDays) * 100 // still use % for relative inside the stretched container
         });
     }
 
     const todayOffset = differenceInDays(today, rangeStart);
     const todayPct = todayOffset >= 0 && todayOffset <= totalDays ? (todayOffset / totalDays) * 100 : null;
 
+    const handleZoomIn = () => {
+        const current = pixelsPerDay === 'fit' ? effectivePixelsPerDay : pixelsPerDay;
+        setPixelsPerDay(Math.min(MAX_PIXELS_PER_DAY, current * 1.25));
+    };
+
+    const handleZoomOut = () => {
+        const current = pixelsPerDay === 'fit' ? effectivePixelsPerDay : pixelsPerDay;
+        setPixelsPerDay(Math.max(MIN_PIXELS_PER_DAY, current * 0.8));
+    };
+
     return (
-        <div
-            ref={containerRef}
-            className={`timeline-scroll-container ${hasOverflow ? 'has-overflow' : ''}`}
-        >
-            <div className="bg-surface rounded-xl border border-border overflow-hidden">
-                {/* Header row */}
-                <div className="flex border-b border-border-muted bg-surface-alt">
-                    <div className="shrink-0 px-4 py-2 flex items-center justify-between" style={{ width: LABEL_WIDTH }}>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-text-muted uppercase">Task</span>
-                            {tasks.length > 0 && (
-                                <span className="text-[10px] font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full">
-                                    {Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100)}%
-                                </span>
-                            )}
+        <div className="relative h-full flex flex-col bg-surface rounded-xl border border-border overflow-hidden">
+            {/* Floating Top Right Toolbar */}
+            <div className="absolute top-4 right-4 z-50 flex items-center gap-2 bg-surface-alt/20 backdrop-blur-sm border border-border shadow-sm p-1.5 rounded-lg select-none">
+                {/* Zoom Controls */}
+                <div className="flex items-center gap-0.5 border-r border-border-muted pr-2 mr-1">
+                    <button
+                        onClick={handleZoomOut}
+                        className="p-1 hover:bg-surface rounded text-text-faint hover:text-text-muted transition-colors"
+                        title="Zoom Out"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                    </button>
+                    <button
+                        onClick={() => setPixelsPerDay('fit')}
+                        className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded hover:bg-surface transition-colors ${pixelsPerDay === 'fit' ? 'text-brand' : 'text-text-faint hover:text-text-muted'}`}
+                        title="Fit to view"
+                    >
+                        Fit
+                    </button>
+                    <button
+                        onClick={handleZoomIn}
+                        className="p-1 hover:bg-surface rounded text-text-faint hover:text-text-muted transition-colors"
+                        title="Zoom In"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    </button>
+                </div>
+                {/* Toggles */}
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => setShowCriticalPath(!showCriticalPath)}
+                        title={showCriticalPath ? 'Hide Critical Path' : 'Show Critical Path'}
+                        className={`p-1 rounded transition-colors ${showCriticalPath
+                            ? 'text-danger bg-danger/10'
+                            : 'text-text-faint hover:text-text-muted hover:bg-surface'}`}
+                    >
+                        <FireIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setShowToday(!showToday)}
+                        title={showToday ? 'Hide buffer to today' : 'Show buffer from today'}
+                        className={`p-1 rounded transition-colors ${showToday
+                            ? 'text-brand bg-brand/10'
+                            : 'text-text-faint hover:text-text-muted hover:bg-surface'}`}
+                    >
+                        <TodayIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Scroll Container */}
+            <div
+                ref={setContainerRef}
+                className={`timeline-scroll-container overflow-auto flex-1 w-full h-full ${hasOverflow ? 'has-overflow' : ''}`}
+            >
+                <div className="flex flex-col min-w-fit h-full relative">
+                    {/* Header row */}
+                    <div className="flex border-b border-border-muted bg-surface-alt shrink-0 z-30 sticky top-0" style={{ width: LABEL_WIDTH + contentWidth }}>
+                        <div className="shrink-0 px-4 py-2 flex items-center justify-between border-r border-border-muted sticky left-0 bg-surface-alt z-40" style={{ width: LABEL_WIDTH }}>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-text-muted uppercase">Task</span>
+                                {tasks.length > 0 && (
+                                    <span className="text-[10px] font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full">
+                                        {Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100)}%
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() => setShowCriticalPath(!showCriticalPath)}
-                                title={showCriticalPath ? 'Hide Critical Path' : 'Show Critical Path'}
-                                className={`p-1 rounded transition-colors ${showCriticalPath
-                                    ? 'text-danger bg-danger/10'
-                                    : 'text-text-faint hover:text-text-muted hover:bg-surface'}`}
-                            >
-                                <FireIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={() => setShowToday(!showToday)}
-                                title={showToday ? 'Hide buffer to today' : 'Show buffer from today'}
-                                className={`p-1 rounded transition-colors ${showToday
-                                    ? 'text-brand bg-brand/10'
-                                    : 'text-text-faint hover:text-text-muted hover:bg-surface'}`}
-                            >
-                                <TodayIcon className="w-4 h-4" />
-                            </button>
+
+                        {/* Header Timeline Track */}
+                        <div className="overflow-hidden flex-1 relative h-10">
+                            {/* We need a scrolling container here that syncs? 
+                            Actually, simpler: The whole thing scrolls together?
+                            Issue: Task labels need to be sticky left.
+                            
+                            Let's restructure:
+                            Outer container scrolls X.
+                            Left labels are sticky left.
+                        */}
+                            <div style={{ width: contentWidth, height: '100%', position: 'relative' }} className="border-r border-border-muted/50">
+                                {dateMarkers.map(({ date, left }, i) => (
+                                    <div
+                                        key={i}
+                                        className="absolute top-0 h-full flex items-center pl-2 border-l border-border-muted/50"
+                                        style={{ left: `${left}%` }}
+                                    >
+                                        <span className={`text-xs font-medium whitespace-nowrap ${isToday(date) ? 'text-brand' : 'text-text-faint'}`}>
+                                            {format(date, 'd')}
+                                            <span className="text-[10px] ml-0.5 opacity-75">{format(date, 'MMM')}</span>
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
+
+
                     </div>
-                    <div className="flex-1 relative h-10">
-                        {dateMarkers.map(({ date, pct }, i) => {
-                            // Align first marker to left, others centered
-                            const isFirst = i === 0;
 
-                            let style: React.CSSProperties = { left: `${pct}%` };
-                            let className = "absolute top-0 h-full flex items-center";
+                    {/* Task rows container */}
+                    <div className="relative" style={{ height: totalHeight, width: LABEL_WIDTH + contentWidth }}>
+                        {/* Grid lines layer */}
+                        <div className="absolute top-0 bottom-0 right-0 border-r border-border-muted" style={{ left: LABEL_WIDTH }}>
+                            {dateMarkers.map(({ left }, i) => (
+                                <div
+                                    key={i}
+                                    className="absolute top-0 bottom-0 border-l border-border-muted"
+                                    style={{ left: `${left}%` }}
+                                />
+                            ))}
 
-                            if (isFirst) {
-                                style.transform = 'none';
-                                className += " pl-2";
-                            } else {
-                                style.transform = 'translateX(-50%)';
-                                className += " justify-center";
+                            {todayPct !== null && (
+                                <div
+                                    className="absolute top-0 bottom-0 w-0.5 bg-danger z-20"
+                                    style={{ left: `${todayPct}%` }}
+                                >
+                                    <div className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-danger" />
+                                </div>
+                            )}
+
+                            {/* Buffer zone */}
+                            {bufferPct > 0 && (
+                                <div
+                                    className="absolute top-0 bottom-0 z-5"
+                                    style={{
+                                        left: `${todayPct}%`,
+                                        width: `${bufferPct}%`,
+                                        background: 'repeating-linear-gradient(45deg, transparent, transparent 4px, var(--color-success) 4px, var(--color-success) 5px)',
+                                        opacity: 0.15
+                                    }}
+                                    title={`${bufferDays} day${bufferDays !== 1 ? 's' : ''} buffer before work starts`}
+                                />
+                            )}
+
+                            {/* SVG Connectors */}
+                            <svg
+                                className="absolute inset-0 w-full h-full pointer-events-none z-10"
+                                viewBox={`0 0 100 ${totalHeight}`}
+                                preserveAspectRatio="none"
+                            >
+                                {sortedTasks.map(task => {
+                                    const successors = definitions.filter(d => d.dependencies.includes(task.id));
+                                    return successors.map(succ => {
+                                        const succTask = tasks.find(t => t.id === succ.id);
+                                        if (!succTask) return null;
+
+                                        const isCriticalLink = showCriticalPath && task.is_critical && succTask.is_critical;
+
+                                        const startIdx = getTaskIndex(task.id);
+                                        const endIdx = getTaskIndex(succ.id);
+
+                                        const taskEnd = parseISO(task.end_date);
+                                        const succStart = parseISO(succTask.start_date);
+
+                                        const x1 = (differenceInDays(taskEnd, rangeStart) / totalDays) * 100;
+                                        const x2 = (differenceInDays(succStart, rangeStart) / totalDays) * 100;
+                                        const y1 = startIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
+                                        const y2 = endIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+                                        return (
+                                            <path
+                                                key={`${task.id}-${succ.id}`}
+                                                d={`M ${x1} ${y1} C ${x1 + 2} ${y1}, ${x2 - 2} ${y2}, ${x2} ${y2}`}
+                                                fill="none"
+                                                stroke={isCriticalLink ? "var(--color-danger)" : "var(--color-border)"}
+                                                strokeWidth={isCriticalLink ? "2" : "1.5"}
+                                                strokeOpacity={isCriticalLink ? "0.8" : "1"}
+                                                vectorEffect="non-scaling-stroke"
+                                            />
+                                        );
+                                    });
+                                })}
+                            </svg>
+                        </div>
+
+                        {/* Rows */}
+                        {sortedTasks.map((task, index) => {
+                            const start = parseISO(task.start_date);
+                            const end = parseISO(task.end_date);
+                            const offset = differenceInDays(start, rangeStart);
+                            const duration = differenceInDays(end, start) || 1;
+
+                            const leftPct = (offset / totalDays) * 100;
+                            const widthPct = (duration / totalDays) * 100;
+
+                            const isPast = isBefore(end, today);
+
+                            // Determine bar color class
+                            let barClass = 'bg-gradient-to-r from-brand to-brand-hover';
+                            if (task.completed) {
+                                barClass = 'bg-success opacity-90';
+                            } else if (showCriticalPath && task.is_critical) {
+                                barClass = 'bg-danger shadow-[0_0_8px_rgba(239,68,68,0.4)]';
+                            } else if (isPast) {
+                                barClass = 'bg-text-faint';
                             }
+
+                            const stickyBgClass = index % 2 === 0 ? 'bg-surface' : 'bg-surface-alt/50';
 
                             return (
                                 <div
-                                    key={i}
-                                    className={className}
-                                    style={style}
+                                    key={task.id}
+                                    className={`absolute left-0 right-0 flex ${index % 2 === 0 ? 'bg-surface' : 'bg-surface-alt/50'}`}
+                                    style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT, width: LABEL_WIDTH + contentWidth }}
                                 >
-                                    <span className={`text-xs font-medium whitespace-nowrap ${isToday(date) ? 'text-brand' : 'text-text-faint'
-                                        }`}>
-                                        {format(date, 'MMM d')}
-                                    </span>
+                                    <div
+                                        className={`shrink-0 px-4 flex flex-col justify-center border-r border-border-muted/50 sticky left-0 z-20 ${stickyBgClass}`}
+                                        style={{ width: LABEL_WIDTH }}
+                                    >
+                                        <span className={`text-sm font-medium truncate ${isPast && !(showCriticalPath && task.is_critical) ? 'text-text-faint' : 'text-text'
+                                            } ${showCriticalPath && task.is_critical && !task.completed ? 'text-danger' : ''}`}>
+                                            {task.name}
+                                        </span>
+                                        <span className="text-xs text-text-faint">{duration}d</span>
+                                    </div>
+
+                                    <div className="flex-1 relative">
+                                        <div
+                                            className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${barClass}`}
+                                            style={{
+                                                left: `${leftPct}%`,
+                                                width: `${Math.max(widthPct, 1.5)}%`,
+                                                top: '50%',
+                                                transform: 'translateY(-50%)'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                setHoveredTask({
+                                                    task,
+                                                    position: { x: rect.right, y: rect.top }
+                                                });
+                                            }}
+                                            onMouseLeave={() => setHoveredTask(null)}
+                                        // Removed raw title attribute in favor of TaskHoverCard
+                                        // title={`${task.name}...`} 
+                                        />
+                                    </div>
                                 </div>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* Task rows */}
-                <div className="relative" style={{ height: totalHeight }}>
-                    {/* Grid lines layer */}
-                    <div className="absolute top-0 bottom-0 right-0" style={{ left: LABEL_WIDTH }}>
-                        {dateMarkers.map(({ pct }, i) => (
-                            <div
-                                key={i}
-                                className="absolute top-0 bottom-0 border-l border-border-muted"
-                                style={{ left: `${pct}%` }}
-                            />
-                        ))}
-
-                        {todayPct !== null && (
-                            <div
-                                className="absolute top-0 bottom-0 w-0.5 bg-danger z-20"
-                                style={{ left: `${todayPct}%` }}
-                            >
-                                <div className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-danger" />
-                            </div>
-                        )}
-
-                        {/* Buffer zone */}
-                        {bufferPct > 0 && (
-                            <div
-                                className="absolute top-0 bottom-0 z-5"
-                                style={{
-                                    left: `${todayPct}%`,
-                                    width: `${bufferPct}%`,
-                                    background: 'repeating-linear-gradient(45deg, transparent, transparent 4px, var(--color-success) 4px, var(--color-success) 5px)',
-                                    opacity: 0.15
-                                }}
-                                title={`${bufferDays} day${bufferDays !== 1 ? 's' : ''} buffer before work starts`}
-                            />
-                        )}
-
-                        {/* SVG Connectors */}
-                        <svg
-                            className="absolute inset-0 w-full h-full pointer-events-none z-10"
-                            viewBox={`0 0 100 ${totalHeight}`}
-                            preserveAspectRatio="none"
-                        >
-                            {sortedTasks.map(task => {
-                                const successors = definitions.filter(d => d.dependencies.includes(task.id));
-                                return successors.map(succ => {
-                                    const succTask = tasks.find(t => t.id === succ.id);
-                                    if (!succTask) return null;
-
-                                    const isCriticalLink = showCriticalPath && task.is_critical && succTask.is_critical;
-
-                                    const startIdx = getTaskIndex(task.id);
-                                    const endIdx = getTaskIndex(succ.id);
-
-                                    const taskEnd = parseISO(task.end_date);
-                                    const succStart = parseISO(succTask.start_date);
-
-                                    const x1 = (differenceInDays(taskEnd, rangeStart) / totalDays) * 100;
-                                    const x2 = (differenceInDays(succStart, rangeStart) / totalDays) * 100;
-                                    const y1 = startIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
-                                    const y2 = endIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
-
-                                    return (
-                                        <path
-                                            key={`${task.id}-${succ.id}`}
-                                            d={`M ${x1} ${y1} C ${x1 + 2} ${y1}, ${x2 - 2} ${y2}, ${x2} ${y2}`}
-                                            fill="none"
-                                            stroke={isCriticalLink ? "var(--color-danger)" : "var(--color-border)"}
-                                            strokeWidth={isCriticalLink ? "2" : "1.5"}
-                                            strokeOpacity={isCriticalLink ? "0.8" : "1"}
-                                            vectorEffect="non-scaling-stroke"
-                                        />
-                                    );
-                                });
-                            })}
-                        </svg>
-                    </div>
-
-                    {/* Rows */}
-                    {sortedTasks.map((task, index) => {
-                        const start = parseISO(task.start_date);
-                        const end = parseISO(task.end_date);
-                        const offset = differenceInDays(start, rangeStart);
-                        const duration = differenceInDays(end, start) || 1;
-
-                        const leftPct = (offset / totalDays) * 100;
-                        const widthPct = (duration / totalDays) * 100;
-
-                        const isPast = isBefore(end, today);
-
-                        // Determine bar color class
-                        let barClass = 'bg-gradient-to-r from-brand to-brand-hover';
-                        if (task.completed) {
-                            barClass = 'bg-success opacity-90';
-                        } else if (showCriticalPath && task.is_critical) {
-                            barClass = 'bg-danger shadow-[0_0_8px_rgba(239,68,68,0.4)]';
-                        } else if (isPast) {
-                            barClass = 'bg-text-faint';
-                        }
-
-                        return (
-                            <div
-                                key={task.id}
-                                className={`absolute left-0 right-0 flex ${index % 2 === 0 ? 'bg-surface' : 'bg-surface-alt/50'
-                                    }`}
-                                style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT }}
-                            >
-                                <div
-                                    className="shrink-0 px-4 flex flex-col justify-center"
-                                    style={{ width: LABEL_WIDTH }}
-                                >
-                                    <span className={`text-sm font-medium truncate ${isPast && !(showCriticalPath && task.is_critical) ? 'text-text-faint' : 'text-text'
-                                        } ${showCriticalPath && task.is_critical && !task.completed ? 'text-danger' : ''}`}>
-                                        {task.name}
-                                    </span>
-                                    <span className="text-xs text-text-faint">{duration}d</span>
-                                </div>
-
-                                <div className="flex-1 relative">
-                                    <div
-                                        className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${barClass}`}
-                                        style={{
-                                            left: `${leftPct}%`,
-                                            width: `${Math.max(widthPct, 1.5)}%`,
-                                            top: '50%',
-                                            transform: 'translateY(-50%)'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            const rect = e.currentTarget.getBoundingClientRect();
-                                            setHoveredTask({
-                                                task,
-                                                position: { x: rect.right, y: rect.top }
-                                            });
-                                        }}
-                                        onMouseLeave={() => setHoveredTask(null)}
-                                    // Removed raw title attribute in favor of TaskHoverCard
-                                    // title={`${task.name}...`} 
-                                    />
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                {/* Hover Card Portal */}
+                {
+                    hoveredTask && (
+                        <TaskHoverCard
+                            task={hoveredTask.task}
+                            definition={definitions.find(d => d.id === hoveredTask.task.id)}
+                            position={hoveredTask.position}
+                            getTaskName={(id) => tasks.find(t => t.id === id)?.name || id}
+                        />
+                    )
+                }
             </div>
-
-            {/* Hover Card Portal */}
-            {hoveredTask && (
-                <TaskHoverCard
-                    task={hoveredTask.task}
-                    definition={definitions.find(d => d.id === hoveredTask.task.id)}
-                    position={hoveredTask.position}
-                    getTaskName={(id) => tasks.find(t => t.id === id)?.name || id}
-                />
-            )}
         </div>
     );
 }

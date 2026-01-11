@@ -36,14 +36,14 @@ Show which tasks can't slip without delaying the deadline.
 
 ### Hover Cards
 Rich detail on hover without clutter.
-- [ ] Task details popup (duration, dependencies, dates)
-- [ ] Dependency chain preview
+- [x] Task details popup (duration, dependencies, dates)
+- [x] Dependency chain preview
 
 ### Zoom Controls
 Week/Month view for long projects.
-- [ ] Zoom slider or buttons
-- [ ] Fit-to-view option
-- [ ] Persist zoom preference
+- [x] Zoom slider or buttons
+- [x] Fit-to-view option
+- [x] Persist zoom preference
 
 ## 📝 Wishlist
 

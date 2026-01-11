@@ -56,7 +56,7 @@ export function TaskHoverCard({ task, definition, position, getTaskName }: TaskH
             className="fixed z-50 pointer-events-none transition-all duration-75"
             style={style}
         >
-            <div className="bg-surface-raised border border-border rounded-lg shadow-xl p-3 w-72 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-2">
+            <div className="bg-surface/50 backdrop-blur-sm border border-border rounded-lg shadow-xl p-3 w-72 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-2">
                 {/* Header */}
                 <div className="mb-2">
                     <h4 className="font-semibold text-text text-sm leading-tight mb-0.5">
