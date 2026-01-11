@@ -36,6 +36,7 @@ pub struct WidgetTask {
     pub start_date: String,
     pub end_date: String,
     pub completed: bool,
+    pub is_milestone: bool,
     pub status: String, // "active", "future", "overdue"
 }
 
@@ -336,6 +337,7 @@ pub fn get_widget_info(
                     start_date: task.start_date,
                     end_date: task.end_date,
                     completed: task.completed,
+                    is_milestone: task.is_milestone,
                     status,
                 });
             }

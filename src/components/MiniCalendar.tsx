@@ -10,6 +10,7 @@ import {
     addMonths,
     subMonths,
     isToday,
+    isSameDay,
     parseISO
 } from 'date-fns';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
@@ -21,6 +22,8 @@ interface MiniCalendarProps {
         start_date: string;
         end_date: string;
         status: 'active' | 'future' | 'overdue';
+        completed: boolean;
+        is_milestone?: boolean;
     }[];
 }
 
@@ -43,6 +46,11 @@ export function MiniCalendar({ tasks }: MiniCalendarProps) {
 
     const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
+    // Find the very last task date (Final Goal) from the available tasks
+    const derivedDeadline = tasks.length > 0
+        ? tasks.reduce((max, t) => t.end_date > max ? t.end_date : max, tasks[0].end_date)
+        : null;
+
     const getDayStatus = (day: Date) => {
         // Simple check if any task falls on this day
         // This could be optimized if task list is huge, but for widget tasks it's likely fine
@@ -53,21 +61,23 @@ export function MiniCalendar({ tasks }: MiniCalendarProps) {
             // Adjusting logic: Check if day is between start and end (inclusive)
             const start = parseISO(task.start_date);
             const end = parseISO(task.end_date);
-            // Normalize times
-            start.setHours(0, 0, 0, 0);
-            end.setHours(0, 0, 0, 0);
-            const d = new Date(day);
-            d.setHours(0, 0, 0, 0);
-
-            return d >= start && d <= end;
+            return (day >= start && day <= end) || isSameDay(day, start) || isSameDay(day, end);
         });
 
-        if (dayTasks.length === 0) return null;
-
-        // Priority: Overdue > Active > Future
+        // Priority: Completed > Overdue > Deadline > Milestone > Active > Future
+        if (dayTasks.some(t => t.completed)) return 'completed';
         if (dayTasks.some(t => t.status === 'overdue')) return 'overdue';
+
+        // explicit project deadline (Final Goal) - Brand Color
+        if (derivedDeadline && isSameDay(day, parseISO(derivedDeadline))) return 'deadline';
+
+        // Milestone end date - Purple
+        if (dayTasks.some(t => t.is_milestone && isSameDay(day, parseISO(t.end_date)))) return 'milestone';
+
         if (dayTasks.some(t => t.status === 'active')) return 'active';
-        return 'future';
+        if (dayTasks.length > 0) return 'future';
+
+        return null;
     };
 
     return (
@@ -117,8 +127,11 @@ export function MiniCalendar({ tasks }: MiniCalendarProps) {
                             {status && !isCurrentDay && (
                                 <div className={`
                                     absolute bottom-0.5 w-1 h-1 rounded-full
-                                    ${status === 'overdue' ? 'bg-danger' :
-                                        status === 'active' ? 'bg-brand' : 'bg-text-muted'}
+                                    ${status === 'completed' ? 'bg-success' :
+                                        status === 'overdue' ? 'bg-danger' :
+                                            status === 'deadline' ? 'bg-brand' :
+                                                status === 'milestone' ? 'bg-purple-500' :
+                                                    status === 'active' ? 'bg-brand/50' : 'bg-text-muted'}
                                 `} />
                             )}
                         </div>

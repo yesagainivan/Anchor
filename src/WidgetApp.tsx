@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { differenceInDays, parseISO } from "date-fns";
-import { ChevronLeftIcon, ChevronRightIcon } from "./components/icons";
+import { ChevronLeftIcon, ChevronRightIcon, DiamondIcon } from "./components/icons";
 import { MiniCalendar } from "./components/MiniCalendar";
 
 
@@ -12,6 +12,7 @@ interface WidgetTask {
     start_date: string;
     end_date: string;
     completed: boolean;
+    is_milestone?: boolean;
     status: 'active' | 'future' | 'overdue';
 }
 
@@ -122,7 +123,7 @@ function WidgetApp() {
         switch (info.status) {
             case "overdue": return "from-red-500 to-red-600";
             case "urgent": return "from-amber-500 to-orange-500"; // Urgent means <= 5 days
-            case "on_track": return "from-emerald-500 to-green-600";
+            case "on_track": return "from-[var(--color-success)] to-[var(--color-success)]";
             default: return "from-brand to-brand-hover";
         }
     };
@@ -206,7 +207,7 @@ function WidgetApp() {
                         </div>
 
                         {/* Status Text */}
-                        <div className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${info.task_progress === 1.0 ? "from-emerald-400 to-green-500" : getStatusColor()} pb-1 pointer-events-none text-center truncate w-full px-2`}>
+                        <div className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${info.task_progress === 1.0 ? "from-[var(--color-success)] to-[var(--color-success)]" : getStatusColor()} pb-1 pointer-events-none text-center truncate w-full px-2`}>
                             {info.task_progress === 1.0 ? "Completed" : getDaysText()}
                         </div>
 
@@ -219,7 +220,7 @@ function WidgetApp() {
                         {/* Progress Bar */}
                         <div className="w-full h-1 bg-border-muted mt-6 rounded-full overflow-hidden opacity-50 pointer-events-none relative">
                             <div
-                                className={`h-full bg-gradient-to-r ${info.task_progress === 1.0 ? "from-emerald-400 to-green-500" : getStatusColor()} rounded-full transition-all duration-500 ease-out`}
+                                className={`h-full bg-gradient-to-r ${info.task_progress === 1.0 ? "from-[var(--color-success)] to-[var(--color-success)]" : getStatusColor()} rounded-full transition-all duration-500 ease-out`}
                                 style={{ width: `${Math.round((info.task_progress || 0) * 100)}%` }}
                             />
                         </div>
@@ -241,12 +242,18 @@ function WidgetApp() {
                                 {info.upcoming_tasks.map((task) => (
                                     <div key={task.id} className="relative mb-3 last:mb-0 pl-4 group">
                                         {/* Dot */}
-                                        <div className={`absolute left-[-1px] top-1.5 w-3 h-3 rounded-full border-2 transition-colors ${task.status === 'active'
-                                            ? 'bg-brand border-brand shadow-[0_0_8px_rgba(var(--brand-rgb),0.5)]'
-                                            : task.status === 'overdue'
-                                                ? 'bg-danger border-danger'
-                                                : 'bg-surface border-text-muted group-hover:border-text-faint'
-                                            }`} />
+                                        <div className={`absolute left-[-1px] top-1.5 w-3 h-3 rounded-full border-2 transition-colors flex items-center justify-center ${task.completed
+                                            ? 'bg-success border-success'
+                                            : task.is_milestone
+                                                ? 'bg-purple-500 border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
+                                                : task.status === 'active'
+                                                    ? 'bg-brand border-brand shadow-[0_0_8px_rgba(var(--brand-rgb),0.5)]'
+                                                    : task.status === 'overdue'
+                                                        ? 'bg-danger border-danger'
+                                                        : 'bg-surface border-text-muted group-hover:border-text-faint'
+                                            }`}>
+                                            {task.is_milestone && !task.completed && <DiamondIcon className="w-1.5 h-1.5 text-white" />}
+                                        </div>
 
                                         <div className="flex flex-col">
                                             <span className={`text-xs font-medium truncate ${task.status === 'active' ? 'text-text' : 'text-text-muted'
