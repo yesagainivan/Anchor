@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Task } from '../types';
 import { AnchorIcon, CloseIcon, EditIcon, CheckIcon, MemoIcon, DiamondIcon, ChevronRightIcon, ChevronDownIcon } from './icons';
 import { Checkbox } from './Checkbox';
-import { DurationPicker } from './ui/DurationPicker';
+import { SmartDurationInput } from './ui/SmartDurationInput';
 
 interface TaskFormProps {
     tasks: Task[];
@@ -136,7 +136,7 @@ export function TaskForm({
                     <div className="flex gap-3">
                         <div className="flex-1">
                             <label className="block text-xs text-text-muted mb-1">Duration</label>
-                            <DurationPicker
+                            <SmartDurationInput
                                 value={newTaskDuration}
                                 unit={durationUnit}
                                 onChange={(val, unit) => {

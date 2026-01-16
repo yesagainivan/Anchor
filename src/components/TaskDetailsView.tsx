@@ -4,7 +4,7 @@ import { Task, ScheduledTask } from '../types';
 import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, BackIcon, EditIcon, DiamondIcon, TimelineIcon } from './icons';
 import { Checkbox } from './Checkbox';
 import { format, parseISO } from 'date-fns';
-import { DurationPicker } from './ui/DurationPicker';
+import { SmartDurationInput } from './ui/SmartDurationInput';
 
 interface TaskDetailsViewProps {
     taskId: string | null;
@@ -110,65 +110,74 @@ export function TaskDetailsView({
                 <div className="flex-1 flex items-start gap-3">
                     <button
                         onClick={onClose}
-                        className="mt-1 p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-alt transition-colors"
+                        className="mt-1.5 p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-alt transition-colors"
                         title="Back to List"
                     >
                         <BackIcon className="w-5 h-5" />
                     </button>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                         {isEditing ? (
-                            <>
+                            <div className="space-y-3">
                                 <input
-                                    className="text-2xl font-bold bg-surface-alt border border-border rounded px-2 py-1 w-full text-text focus:border-brand focus:ring-0 outline-none transition-colors"
+                                    className="text-2xl font-bold bg-transparent border-none p-0 w-full text-text focus:ring-0 outline-none placeholder:text-text-muted/50"
                                     value={editName}
                                     onChange={e => setEditName(e.target.value)}
                                     placeholder="Task Name"
                                     autoFocus
                                 />
-                                <div className="mt-2 flex items-center gap-2">
+                                <div className="flex items-center flex-wrap gap-4 text-sm">
                                     <Checkbox
                                         checked={isMilestoneEditing}
                                         onChange={setIsMilestoneEditing}
-                                        label="Mark as Milestone"
-                                        className="text-sm text-text"
+                                        label="Milestone"
+                                        className="text-text-muted hover:text-text"
                                     />
-                                </div>
-                            </>
-                        ) : (
-                            <h2 className={`text-2xl font-bold text-text flex items-center gap-3 ${taskDef.completed ? 'line-through opacity-60' : ''}`}>
-                                {taskDef.name}
-                                {taskDef.is_milestone && <span className="text-base font-normal no-underline px-2 py-0.5 bg-purple-500/10 text-purple-500 rounded-full text-xs border border-purple-500/20 flex items-center gap-1">Milestone <DiamondIcon className="w-3 h-3" /></span>}
-                                {taskDef.completed && <span className="text-base font-normal no-underline px-2 py-0.5 bg-success/10 text-success rounded-full text-xs">Completed</span>}
-                            </h2>
-                        )}
-
-                        <div className="flex items-center gap-4 mt-2 text-sm text-text-muted">
-                            <div className="flex items-center gap-1.5">
-                                {isEditing ? (
-                                    <div className="flex items-center gap-1">
-                                        <DurationPicker
+                                    <div className="w-px h-4 bg-border" />
+                                    <div className="flex items-center gap-2">
+                                        <SmartDurationInput
                                             value={editDuration}
                                             unit={editDurationUnit}
                                             onChange={(val, unit) => {
                                                 setEditDuration(val);
                                                 setEditDurationUnit(unit);
                                             }}
-                                            className="scale-90 origin-left"
+                                            className="w-24"
                                         />
                                     </div>
-                                ) : (
-                                    <span className="font-medium bg-surface-alt px-2 py-0.5 rounded text-xs">{taskDef.duration_days} days</span>
-                                )}
-                            </div>
-                            {taskSched && (
-                                <div className="flex items-center gap-1.5 text-text-faint">
-                                    <CalendarIcon className="w-4 h-4" />
-                                    <span>
-                                        {format(parseISO(taskSched.start_date), 'MMM d')} - {format(parseISO(taskSched.end_date), 'MMM d')}
-                                    </span>
+                                    {taskSched && (
+                                        <>
+                                            <div className="w-px h-4 bg-border" />
+                                            <div className="flex items-center gap-1.5 text-text-muted">
+                                                <CalendarIcon className="w-4 h-4" />
+                                                <span>
+                                                    {format(parseISO(taskSched.start_date), 'MMM d')} - {format(parseISO(taskSched.end_date), 'MMM d')}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-1.5">
+                                <h2 className={`text-2xl font-bold text-text flex items-center gap-3 ${taskDef.completed ? 'line-through opacity-60' : ''}`}>
+                                    {taskDef.name}
+                                    {taskDef.is_milestone && <span className="text-base font-normal no-underline px-2 py-0.5 bg-purple-500/10 text-purple-500 rounded-full text-xs border border-purple-500/20 flex items-center gap-1">Milestone <DiamondIcon className="w-3 h-3" /></span>}
+                                    {taskDef.completed && <span className="text-base font-normal no-underline px-2 py-0.5 bg-success/10 text-success rounded-full text-xs">Completed</span>}
+                                </h2>
+
+                                <div className="flex items-center gap-4 text-sm text-text-muted">
+                                    <span className="font-medium bg-surface-alt px-2 py-0.5 rounded text-xs">{taskDef.duration_days} days</span>
+                                    {taskSched && (
+                                        <div className="flex items-center gap-1.5 text-text-faint">
+                                            <CalendarIcon className="w-4 h-4" />
+                                            <span>
+                                                {format(parseISO(taskSched.start_date), 'MMM d')} - {format(parseISO(taskSched.end_date), 'MMM d')}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -203,15 +212,15 @@ export function TaskDetailsView({
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setIsEditing(false)}
-                                    className="px-4 py-2 text-sm font-medium text-text-muted hover:text-text hover:bg-surface-alt rounded transition-colors"
+                                    className="px-3 py-1.5 text-sm font-medium text-text-muted hover:text-text hover:bg-surface-alt rounded transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSave}
-                                    className="px-4 py-2 text-sm font-medium bg-brand text-white hover:bg-brand-hover rounded transition-colors shadow-sm"
+                                    className="px-3 py-1.5 text-sm font-medium bg-brand text-white hover:bg-brand-hover rounded transition-colors shadow-sm"
                                 >
-                                    Save Changes
+                                    Save
                                 </button>
                             </div>
                         )}
@@ -273,12 +282,22 @@ export function TaskDetailsView({
                                         <MemoIcon className="w-4 h-4" />
                                         Notes
                                     </h3>
-                                    <textarea
-                                        className="w-full flex-1 bg-surface border border-border rounded-lg p-4 text-base text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none resize-none font-mono leading-relaxed transition-colors"
-                                        placeholder="# Add details\n\n- Requirements\n- Links\n- Ideas"
-                                        value={editNotes}
-                                        onChange={e => setEditNotes(e.target.value)}
-                                    />
+                                    <div className="relative flex-1 flex flex-col min-h-[200px]">
+                                        {!editNotes && (
+                                            <div className="absolute top-4 left-4 text-text-faint pointer-events-none whitespace-pre-line select-none opacity-60">
+                                                {`# Add details
+
+- Requirements
+- Links
+- Ideas`}
+                                            </div>
+                                        )}
+                                        <textarea
+                                            className="w-full flex-1 bg-surface border border-border rounded-lg p-4 text-base text-text focus:border-brand focus:ring-0 outline-none resize-none font-mono leading-relaxed transition-colors bg-transparent"
+                                            value={editNotes}
+                                            onChange={e => setEditNotes(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         ) : (
