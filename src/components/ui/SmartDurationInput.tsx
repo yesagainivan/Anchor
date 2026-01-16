@@ -83,7 +83,6 @@ export function SmartDurationInput({
         } else {
             // No unit specified, infer from current or commonly used logic
             // If user types '5', and last unit was days, keep days.
-            // But maybe we want to be smarter? For now keeping existing unit is safest UX.
             newUnit = unit;
         }
 

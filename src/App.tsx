@@ -67,6 +67,23 @@ function App() {
     }
   }, [toggleAnchor, anchorTaskIds, setAnchorDate]);
 
+  const handleTaskDurationChange = useCallback((taskId: string, newDurationMinutes: number) => {
+    const currentTasks = project?.tasks || [];
+    const task = currentTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Create updated task with new duration
+    // If we're resizing in calendar, we likely want to switch to minute precision
+    // even if it was originally days (since resizing implies fine-tuning)
+    const updatedTask = {
+      ...task,
+      duration_minutes: newDurationMinutes,
+      duration_days: 0 // Clear days to ensure minutes are used
+    };
+
+    editTask(updatedTask);
+  }, [project, editTask]);
+
   const handleOpenDetails = (taskId: string) => {
     setSelectedTaskId(taskId);
     setViewMode('details');
@@ -245,7 +262,12 @@ function App() {
               onOpenDetails={handleOpenDetails}
             />
           ) : viewMode === 'calendar' ? (
-            <CalendarView tasks={scheduledTasks} onTaskMove={handleTaskMove} />
+            <CalendarView
+              tasks={scheduledTasks}
+              definitions={tasks}
+              onTaskMove={handleTaskMove}
+              onTaskDurationChange={handleTaskDurationChange}
+            />
           ) : (
             <TaskDetailsView
               taskId={selectedTaskId}

@@ -9,6 +9,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './CalendarView.css';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { YearView } from './YearView';
+import { Task } from '../types'; // Import Task definition
 
 type CalendarViewType = View | 'year';
 
@@ -81,7 +82,9 @@ interface CalendarEvent {
 
 interface CalendarViewProps {
     tasks: ScheduledTask[];
+    definitions: Task[];
     onTaskMove?: (taskId: string, newDate: string) => void;
+    onTaskDurationChange?: (taskId: string, newDurationMinutes: number) => void;
 }
 
 const locales = {
@@ -98,18 +101,43 @@ const localizer = dateFnsLocalizer({
 
 const DnDCalendar = withDragAndDrop<CalendarEvent>(Calendar);
 
-export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
+export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationChange }: CalendarViewProps) {
     const [view, setView] = useState<CalendarViewType>('month');
     const [date, setDate] = useState(new Date());
 
-    const events = tasks.map(task => ({
-        id: task.id,
-        title: task.name,
-        start: parseISO(task.start_date),
-        end: parseISO(task.end_date),
-        allDay: true,
-        resource: task
-    }));
+    const events = tasks.map(task => {
+        const def = definitions.find(d => d.id === task.id);
+        const start = parseISO(task.start_date);
+        const end = parseISO(task.end_date);
+
+        // Determine if it should be an all-day event
+        // If it was defined with days (not minutes) or is >= 24 hours
+        const isAllDay = def ? (def.duration_minutes === undefined || def.duration_minutes === null) : true;
+
+        return {
+            id: task.id,
+            title: task.name,
+            start,
+            end,
+            allDay: isAllDay,
+            resource: task
+        };
+    });
+
+    const onEventResize: withDragAndDropProps<CalendarEvent>['onEventResize'] = (data) => {
+        if (!onTaskDurationChange) return;
+
+        const start = data.start as Date;
+        const end = data.end as Date;
+
+        // Calculate minutes difference
+        const diffMs = end.getTime() - start.getTime();
+        const diffMinutes = Math.round(diffMs / (1000 * 60));
+
+        if (diffMinutes > 0) {
+            onTaskDurationChange((data.event as any).id, diffMinutes);
+        }
+    };
 
     const onEventDrop: withDragAndDropProps<CalendarEvent>['onEventDrop'] = (data) => {
         if (!onTaskMove) return;
@@ -139,9 +167,33 @@ export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
         }
     };
 
-    const eventPropGetter = () => {
+    const slotPropGetter = (date: Date) => {
+        const hour = date.getHours();
+        const isBusinessHour = hour >= 9 && hour < 18; // 9 AM to 6 PM
         return {
-            className: 'cursor-move bg-brand border-brand text-white shadow-sm',
+            className: isBusinessHour ? 'bg-surface-alt/30' : 'bg-surface/50',
+            style: isBusinessHour ? {} : { opacity: 0.8 } // Subtle dimming for off-hours
+        };
+    };
+
+    const eventPropGetter = (event: CalendarEvent) => {
+        const task = event.resource;
+        const classes = ['cursor-move text-white shadow-sm transition-all'];
+
+        if (task.completed) {
+            classes.push('bg-success border-success opacity-80 decoration-slice line-through');
+        } else if (task.is_milestone) {
+            classes.push('bg-text text-surface border-text font-bold rotate-1 hover:rotate-0 hover:scale-105 z-10');
+        } else {
+            classes.push('bg-brand border-brand');
+        }
+
+        if (task.is_critical && !task.completed) {
+            classes.push('ring-2 ring-danger ring-offset-1 ring-offset-surface');
+        }
+
+        return {
+            className: classes.join(' '),
         };
     };
 
@@ -177,8 +229,11 @@ export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
                         popup
                         className="font-sans text-text"
                         onEventDrop={onEventDrop}
-                        resizable={false}
+                        onEventResize={onEventResize}
+                        resizable={true}
+                        scrollToTime={new Date(1970, 1, 1, 8, 0, 0)}
                         eventPropGetter={eventPropGetter}
+                        slotPropGetter={slotPropGetter}
                         draggableAccessor={() => true}
                         formats={{
                             timeGutterFormat: (date: Date, culture?: string, localizer?: any) =>
