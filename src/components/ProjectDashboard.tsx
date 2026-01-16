@@ -141,7 +141,7 @@ export function ProjectDashboard({ onOpenProject, theme, onThemeChange }: Projec
                                         <div className="flex flex-col">
                                             <span className="text-text-muted text-xs">Next Deadline</span>
                                             <span className={`font-medium ${project.status === 'urgent' || project.status === 'overdue' ? 'text-danger' : 'text-text'}`}>
-                                                {new Date(project.next_deadline + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                {new Date(project.next_deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                             </span>
                                         </div>
                                     )}

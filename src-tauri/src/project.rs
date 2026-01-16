@@ -155,7 +155,7 @@ pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
 
                         // Default to nearest anchor
                         if let Some(anchor) = anchors.first() {
-                            next_deadline = Some(anchor.format("%Y-%m-%d %H:%M").to_string());
+                            next_deadline = Some(anchor.format("%Y-%m-%dT%H:%M:%S").to_string());
                             let duration = *anchor - now;
                             let days = duration.num_days();
                             status = if duration.num_seconds() < 0 {
@@ -205,7 +205,7 @@ pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
 
                             if let Some((start, end, task)) = active_or_upcoming.first() {
                                 // Update Next Deadline to this task's deadline
-                                next_deadline = Some(end.format("%Y-%m-%d %H:%M").to_string());
+                                next_deadline = Some(end.format("%Y-%m-%dT%H:%M:%S").to_string());
 
                                 // Update Status based on THIS deadline
                                 let duration = *end - now;

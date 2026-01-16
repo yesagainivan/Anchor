@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Task, ScheduledTask } from '../types';
-import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, EditIcon, DiamondIcon, TimelineIcon } from './icons';
+import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, BackIcon, EditIcon, DiamondIcon, TimelineIcon } from './icons';
 import { Checkbox } from './Checkbox';
 import { format, parseISO } from 'date-fns';
 
@@ -83,7 +83,7 @@ export function TaskDetailsView({
                         className="mt-1 p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-alt transition-colors"
                         title="Back to List"
                     >
-                        <CloseIcon className="w-5 h-5" />
+                        <BackIcon className="w-5 h-5" />
                     </button>
                     <div className="flex-1">
                         {isEditing ? (

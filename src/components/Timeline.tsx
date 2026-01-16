@@ -116,10 +116,12 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const now = new Date();
 
     const firstTaskStart = parseISO(sortedTasks[0].start_date);
+    firstTaskStart.setHours(0, 0, 0, 0); // Align to midnight
 
-    // Find the latest end date among all tasks (not just the last one in start-sorted list)
+    // Find the latest end date among all tasks
     const lastTaskEnd = tasks.reduce((max, t) => {
         const end = parseISO(t.end_date);
         return isBefore(max, end) ? end : max;
@@ -127,8 +129,23 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
 
     // When showToday is ON and today is before first task, extend range to include today
     const rangeStart = showToday && isBefore(today, firstTaskStart) ? today : firstTaskStart;
-    const rangeEnd = lastTaskEnd;
-    const totalDays = differenceInDays(rangeEnd, rangeStart) + 1;
+
+    // Ensure range covers full days for the end date too
+    const rangeEnd = new Date(lastTaskEnd);
+    if (rangeEnd.getHours() !== 0 || rangeEnd.getMinutes() !== 0) {
+        rangeEnd.setHours(0, 0, 0, 0);
+        rangeEnd.setDate(rangeEnd.getDate() + 1);
+    } else {
+        // If it ends exactly at midnight (unlikely for task end, usually end of day is 23:59 or we interpret it as up to)
+        // If `lastTaskEnd` is effectively "end of day", it might be T23:59:59.
+        rangeEnd.setHours(0, 0, 0, 0);
+        rangeEnd.setDate(rangeEnd.getDate() + 1);
+    }
+
+    // Total duration in ms
+    const diffMs = rangeEnd.getTime() - rangeStart.getTime();
+    const totalDays = Math.max(Math.ceil(diffMs / (1000 * 60 * 60 * 24)), 1);
+    const totalMs = totalDays * 24 * 60 * 60 * 1000;
 
     // Calculate buffer zone (days between today and first task)
     const bufferDays = showToday && isBefore(today, firstTaskStart)
@@ -172,8 +189,8 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
         });
     }
 
-    const todayOffset = differenceInDays(today, rangeStart);
-    const todayPct = todayOffset >= 0 && todayOffset <= totalDays ? (todayOffset / totalDays) * 100 : null;
+    const todayOffsetMs = now.getTime() - rangeStart.getTime();
+    const todayPct = todayOffsetMs >= 0 && todayOffsetMs <= totalMs ? (todayOffsetMs / totalMs) * 100 : null;
 
     const handleZoomIn = () => {
         const current = pixelsPerDay === 'fit' ? effectivePixelsPerDay : pixelsPerDay;
@@ -330,8 +347,8 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                                         const taskEnd = parseISO(task.end_date);
                                         const succStart = parseISO(succTask.start_date);
 
-                                        const x1 = (differenceInDays(taskEnd, rangeStart) / totalDays) * 100;
-                                        const x2 = (differenceInDays(succStart, rangeStart) / totalDays) * 100;
+                                        const x1 = ((taskEnd.getTime() - rangeStart.getTime()) / totalMs) * 100;
+                                        const x2 = ((succStart.getTime() - rangeStart.getTime()) / totalMs) * 100;
                                         const y1 = startIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
                                         const y2 = endIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
 
@@ -355,13 +372,13 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                         {sortedTasks.map((task, index) => {
                             const start = parseISO(task.start_date);
                             const end = parseISO(task.end_date);
-                            const offset = differenceInDays(start, rangeStart);
+                            const offsetMs = start.getTime() - rangeStart.getTime();
                             // Calculated float duration for bar width
                             const durationMs = end.getTime() - start.getTime();
-                            const durationDays = Math.max(durationMs / (1000 * 60 * 60 * 24), 0.1); // min width
 
-                            const leftPct = (offset / totalDays) * 100;
-                            const widthPct = (durationDays / totalDays) * 100;
+
+                            const leftPct = (offsetMs / totalMs) * 100;
+                            const widthPct = (durationMs / totalMs) * 100;
 
                             const isPast = isBefore(end, today);
 

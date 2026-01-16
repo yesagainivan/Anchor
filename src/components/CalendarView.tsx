@@ -1,6 +1,6 @@
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import withDragAndDrop, { withDragAndDropProps } from 'react-big-calendar/lib/addons/dragAndDrop';
-import { format, parse, startOfWeek, getDay, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, endOfWeek, addYears, subYears } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, endOfWeek, addYears, subYears, parseISO } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { ScheduledTask } from '../types';
 import { useState } from 'react';
@@ -105,8 +105,8 @@ export function CalendarView({ tasks, onTaskMove }: CalendarViewProps) {
     const events = tasks.map(task => ({
         id: task.id,
         title: task.name,
-        start: parse(task.start_date, 'yyyy-MM-dd', new Date()),
-        end: parse(task.end_date, 'yyyy-MM-dd', new Date()),
+        start: parseISO(task.start_date),
+        end: parseISO(task.end_date),
         allDay: true,
         resource: task
     }));
