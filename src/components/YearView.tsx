@@ -32,12 +32,7 @@ interface YearViewProps {
     tasks: ScheduledTask[];
 }
 
-function getTaskStatus(task: ScheduledTask): DayStatus {
-    if (task.is_critical && !task.completed) return 'critical';
-    if (task.is_milestone) return 'milestone';
-    if (task.completed) return 'completed';
-    return 'normal';
-}
+
 
 function getPriority(status: DayStatus): number {
     switch (status) {
@@ -238,13 +233,22 @@ const MonthGrid = memo(function MonthGrid({
     const endDate = endOfWeek(endOfMonth(month));
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
-    const getStatusColor = (status: DayStatus) => {
+    const getStatusDotColor = (status: DayStatus) => {
         switch (status) {
-            case 'critical': return 'bg-danger text-white';
-            case 'milestone': return 'bg-text text-surface'; // Invert for milestone
-            case 'completed': return 'bg-success text-white';
-            case 'normal': return 'bg-brand text-text-inverse';
-            default: return 'text-text';
+            case 'critical': return 'bg-danger';
+            case 'milestone': return 'bg-text'; // Purple/Text color
+            case 'completed': return 'bg-success';
+            case 'normal': return 'bg-brand';
+            default: return 'bg-text-muted';
+        }
+    };
+
+    const handleDayClick = (e: React.MouseEvent) => {
+        const target = (e.target as HTMLElement).closest('button');
+        if (target && target.dataset.date) {
+            const date = parseISO(target.dataset.date);
+            onNavigate(date);
+            onViewChange('day');
         }
     };
 
@@ -269,7 +273,11 @@ const MonthGrid = memo(function MonthGrid({
                 ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-y-2 gap-x-1" role="grid">
+            <div
+                className="grid grid-cols-7 gap-y-2 gap-x-1"
+                role="grid"
+                onClick={handleDayClick}
+            >
                 {days.map(day => {
                     const isCurrentMonth = isSameMonth(day, month);
 
@@ -280,24 +288,26 @@ const MonthGrid = memo(function MonthGrid({
                     const isCurrentDay = isToday(day);
                     const dayInfo = data ? data.get(day.getTime()) : undefined;
                     const hasTask = !!dayInfo;
-                    const statusClass = dayInfo ? getStatusColor(dayInfo.status) : '';
+                    const dotColor = dayInfo ? getStatusDotColor(dayInfo.status) : '';
+                    const dateStr = day.toISOString();
 
                     return (
-                        <button
-                            key={day.toISOString()}
-                            className={`
-                                relative h-6 w-full flex items-center justify-center text-xs rounded-full cursor-pointer transition-all focus:ring-2 focus:ring-brand focus:outline-none
-                                ${isCurrentDay && !hasTask ? 'bg-text text-surface font-bold ring-1 ring-text' : ''}
-                                ${hasTask ? `${statusClass} font-bold hover:brightness-110 shadow-sm` : 'text-text-muted hover:bg-surface-alt'}
-                            `}
-                            onClick={() => {
-                                onNavigate(day);
-                                onViewChange('day');
-                            }}
-                            title={hasTask ? `${dayInfo?.count} tasks (${dayInfo?.status})` : undefined}
-                        >
-                            {format(day, 'd')}
-                        </button>
+                        <div key={dateStr} className="flex justify-center h-8">
+                            {/* Wrapper to ensure centering */}
+                            <button
+                                data-date={dateStr}
+                                className={`
+                                    relative w-7 h-7 flex flex-col items-center justify-center text-xs rounded-full cursor-pointer transition-all focus:ring-2 focus:ring-brand focus:outline-none
+                                    ${isCurrentDay ? 'bg-brand text-text-inverse font-bold' : 'text-text hover:bg-surface-alt'}
+                                `}
+                                title={hasTask ? `${dayInfo?.count} tasks (${dayInfo?.status})` : undefined}
+                            >
+                                <span className={hasTask && !isCurrentDay ? 'mb-[2px]' : ''}>{format(day, 'd')}</span>
+                                {hasTask && !isCurrentDay && (
+                                    <div className={`w-1 h-1 rounded-full ${dotColor}`} />
+                                )}
+                            </button>
+                        </div>
                     );
                 })}
             </div>
