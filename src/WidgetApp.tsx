@@ -32,10 +32,12 @@ interface WidgetInfo {
     calendar_tasks: WidgetTask[];
     all_projects: ProjectSummary[];
     task_progress: number | null;
+    active_task: WidgetTask | null;
 }
 
 function WidgetApp() {
     const [info, setInfo] = useState<WidgetInfo | null>(null);
+    const [liveProgress, setLiveProgress] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'focus' | 'list' | 'calendar'>('focus');
     const { theme, loaded: configLoaded } = useConfig();
 
@@ -44,6 +46,16 @@ function WidgetApp() {
             const args = projectId ? { projectId } : undefined;
             const data = await invoke<WidgetInfo | null>("get_widget_info", args);
             setInfo(data);
+            // Initialize live progress immediately
+            if (data?.active_task) {
+                if (data.active_task.completed) {
+                    setLiveProgress(1.0);
+                } else {
+                    setLiveProgress(data.task_progress);
+                }
+            } else {
+                setLiveProgress(data?.task_progress ?? null);
+            }
         } catch (error) {
             console.error("Failed to fetch widget info:", error);
         }
@@ -104,6 +116,41 @@ function WidgetApp() {
             return () => mediaQuery.removeEventListener('change', handler);
         }
     }, [theme, configLoaded]);
+
+    // Live Progress Timer
+    useEffect(() => {
+        // If no active task or it's already completed, ensure we show 100% or stop
+        if (!info?.active_task) return;
+
+        if (info.active_task.completed) {
+            setLiveProgress(1.0);
+            return;
+        }
+
+        const updateProgress = () => {
+            const now = new Date();
+            const start = parseISO(info.active_task!.start_date);
+            const end = parseISO(info.active_task!.end_date);
+
+            const total = end.getTime() - start.getTime();
+            const elapsed = now.getTime() - start.getTime();
+
+            if (total <= 0) {
+                setLiveProgress(1.0);
+                return;
+            }
+
+            const p = Math.max(0, Math.min(1, elapsed / total));
+            setLiveProgress(p);
+        };
+
+        // Update immediately
+        updateProgress();
+
+        // Update every minute as requested by user
+        const interval = setInterval(updateProgress, 60000);
+        return () => clearInterval(interval);
+    }, [info?.active_task]);
 
     const getDaysText = () => {
         if (!info || !info.next_deadline) return "No Deadline Set";
@@ -232,8 +279,8 @@ function WidgetApp() {
                         {/* Progress Bar */}
                         <div className="w-full h-1 bg-border-muted mt-6 rounded-full overflow-hidden opacity-50 pointer-events-none relative">
                             <div
-                                className={`h-full bg-gradient-to-r ${info.task_progress === 1.0 ? "from-[var(--color-success)] to-[var(--color-success)]" : getStatusColor()} rounded-full transition-all duration-500 ease-out`}
-                                style={{ width: `${Math.round((info.task_progress || 0) * 100)}%` }}
+                                className={`h-full bg-gradient-to-r ${info.task_progress === 1.0 ? "from-[var(--color-success)] to-[var(--color-success)]" : getStatusColor()} rounded-full transition-all duration-1000 ease-linear`}
+                                style={{ width: `${Math.round((liveProgress || 0) * 100)}%` }}
                             />
                         </div>
                     </div>

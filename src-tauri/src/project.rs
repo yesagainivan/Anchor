@@ -57,6 +57,7 @@ pub struct WidgetInfo {
     pub calendar_tasks: Vec<WidgetTask>,
     pub all_projects: Vec<ProjectSummary>,
     pub task_progress: Option<f32>,
+    pub active_task: Option<WidgetTask>,
 }
 
 // Helper to get projects directory: app_data_dir/projects
@@ -404,7 +405,28 @@ pub fn get_widget_info(
         false
     });
 
+    let mut active_task = None;
+
     let task_progress = if let Some((start, end, task)) = target_task_tuple {
+        // Construct WidgetTask for the active task
+        let status = if *end < now {
+            "overdue".to_string()
+        } else if *start <= now && *end >= now {
+            "active".to_string()
+        } else {
+            "future".to_string()
+        };
+
+        active_task = Some(WidgetTask {
+            id: task.id.clone(),
+            name: task.name.clone(),
+            start_date: task.start_date.clone(),
+            end_date: task.end_date.clone(),
+            completed: task.completed,
+            is_milestone: task.is_milestone,
+            status,
+        });
+
         if task.completed {
             Some(1.0f32)
         } else {
@@ -433,5 +455,6 @@ pub fn get_widget_info(
         calendar_tasks,
         all_projects,
         task_progress,
+        active_task,
     }))
 }
