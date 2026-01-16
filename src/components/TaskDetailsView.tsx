@@ -4,6 +4,7 @@ import { Task, ScheduledTask } from '../types';
 import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, BackIcon, EditIcon, DiamondIcon, TimelineIcon } from './icons';
 import { Checkbox } from './Checkbox';
 import { format, parseISO } from 'date-fns';
+import { DurationPicker } from './ui/DurationPicker';
 
 interface TaskDetailsViewProps {
     taskId: string | null;
@@ -27,6 +28,7 @@ export function TaskDetailsView({
     const [editNotes, setEditNotes] = useState('');
     const [isMilestoneEditing, setIsMilestoneEditing] = useState(false);
     const [editDuration, setEditDuration] = useState(1);
+    const [editDurationUnit, setEditDurationUnit] = useState<'minutes' | 'hours' | 'days'>('days');
     const [editDependencies, setEditDependencies] = useState<string[]>([]);
 
     // Find the task data
@@ -38,7 +40,23 @@ export function TaskDetailsView({
             setEditName(taskDef.name);
             setEditNotes(taskDef.notes || '');
             setIsMilestoneEditing(taskDef.is_milestone || false);
-            setEditDuration(taskDef.duration_days);
+
+            if (taskDef.duration_minutes) {
+                if (taskDef.duration_minutes % 1440 === 0) {
+                    setEditDuration(taskDef.duration_minutes / 1440);
+                    setEditDurationUnit('days');
+                } else if (taskDef.duration_minutes % 60 === 0) {
+                    setEditDuration(taskDef.duration_minutes / 60);
+                    setEditDurationUnit('hours');
+                } else {
+                    setEditDuration(taskDef.duration_minutes);
+                    setEditDurationUnit('minutes');
+                }
+            } else {
+                setEditDuration(taskDef.duration_days);
+                setEditDurationUnit('days');
+            }
+
             setEditDependencies(taskDef.dependencies || []);
         }
     }, [taskDef, isEditing]); // Reset when entering edit mode or task changes
@@ -55,12 +73,24 @@ export function TaskDetailsView({
     }
 
     const handleSave = () => {
+        let durationMinutes: number | undefined = undefined;
+        let durationDays = 0;
+
+        if (editDurationUnit === 'days') {
+            durationDays = editDuration;
+        } else if (editDurationUnit === 'hours') {
+            durationMinutes = editDuration * 60;
+        } else {
+            durationMinutes = editDuration;
+        }
+
         onUpdateTask({
             ...taskDef,
             name: editName,
             notes: editNotes.trim() || undefined,
             is_milestone: isMilestoneEditing,
-            duration_days: editDuration,
+            duration_days: durationDays,
+            duration_minutes: durationMinutes,
             dependencies: editDependencies
         });
         setIsEditing(false);
@@ -116,14 +146,15 @@ export function TaskDetailsView({
                             <div className="flex items-center gap-1.5">
                                 {isEditing ? (
                                     <div className="flex items-center gap-1">
-                                        <input
-                                            type="number"
-                                            min="1"
+                                        <DurationPicker
                                             value={editDuration}
-                                            onChange={e => setEditDuration(parseInt(e.target.value) || 1)}
-                                            className="w-12 bg-surface border border-border rounded px-1.5 py-0.5 text-xs text-text focus:border-brand focus:ring-0 outline-none transition-colors"
+                                            unit={editDurationUnit}
+                                            onChange={(val, unit) => {
+                                                setEditDuration(val);
+                                                setEditDurationUnit(unit);
+                                            }}
+                                            className="scale-90 origin-left"
                                         />
-                                        <span className="text-xs">days</span>
                                     </div>
                                 ) : (
                                     <span className="font-medium bg-surface-alt px-2 py-0.5 rounded text-xs">{taskDef.duration_days} days</span>

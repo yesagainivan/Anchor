@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Task } from '../types';
 import { AnchorIcon, CloseIcon, EditIcon, CheckIcon, MemoIcon, DiamondIcon, ChevronRightIcon, ChevronDownIcon } from './icons';
 import { Checkbox } from './Checkbox';
+import { DurationPicker } from './ui/DurationPicker';
 
 interface TaskFormProps {
     tasks: Task[];
@@ -135,26 +136,14 @@ export function TaskForm({
                     <div className="flex gap-3">
                         <div className="flex-1">
                             <label className="block text-xs text-text-muted mb-1">Duration</label>
-                            <div className="flex items-center gap-2">
-                                <div className="flex bg-surface border border-border rounded-lg overflow-hidden">
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        className="w-full bg-transparent p-2 text-sm text-text focus:outline-none"
-                                        value={newTaskDuration}
-                                        onChange={(e) => setNewTaskDuration(Math.max(1, parseInt(e.target.value) || 1))}
-                                    />
-                                    <select
-                                        value={durationUnit}
-                                        onChange={(e) => setDurationUnit(e.target.value as any)}
-                                        className="bg-surface-alt border-l border-border px-2 text-xs text-text-muted focus:outline-none"
-                                    >
-                                        <option value="days">days</option>
-                                        <option value="hours">hours</option>
-                                        <option value="minutes">mins</option>
-                                    </select>
-                                </div>
-                            </div>
+                            <DurationPicker
+                                value={newTaskDuration}
+                                unit={durationUnit}
+                                onChange={(val, unit) => {
+                                    setNewTaskDuration(val);
+                                    setDurationUnit(unit);
+                                }}
+                            />
                         </div>
                     </div>
 
