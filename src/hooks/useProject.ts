@@ -22,6 +22,47 @@ export function useProject(projectId: string | null) {
     // Ref to track if we have unsaved changes
     const isDirty = useRef(false);
 
+    // History stacks for Undo/Redo
+    const historyRef = useRef<Project[]>([]);
+    const futureRef = useRef<Project[]>([]);
+
+    const updateProject = (newProject: Project) => {
+        if (!project) return;
+
+        // Push current state to history
+        historyRef.current.push(project);
+
+        // Clear future (redo) stack on new change
+        futureRef.current = [];
+
+        // Update state
+        isDirty.current = true;
+        setProject(newProject);
+    };
+
+    const undo = () => {
+        const previous = historyRef.current.pop();
+        if (previous && project) {
+            futureRef.current.push(project);
+            setProject(previous);
+            isDirty.current = true;
+
+            // Restore anchor date from the recovered project if needed?
+            // Actually, we should probably sync anchorDate state if it drifts, 
+            // but anchorDate is a UI helper mostly. 
+            // Let's rely on the project anchors source of truth.
+        }
+    };
+
+    const redo = () => {
+        const next = futureRef.current.pop();
+        if (next && project) {
+            historyRef.current.push(project);
+            setProject(next);
+            isDirty.current = true;
+        }
+    };
+
     // Load project when ID changes
     useEffect(() => {
         if (!projectId) {
@@ -53,7 +94,7 @@ export function useProject(projectId: string | null) {
     }, [projectId]);
 
     // Schedule calculation
-    const calculateSchedule = useCallback(async (currentProject: Project, currentAnchorDate: string) => {
+    const calculateSchedule = useCallback(async (currentProject: Project) => {
         const anchorIds = Object.keys(currentProject.anchors);
         if (currentProject.tasks.length === 0 || anchorIds.length === 0) {
             setScheduledTasks([]);
@@ -81,9 +122,9 @@ export function useProject(projectId: string | null) {
     // Effect to run schedule when project data changes
     useEffect(() => {
         if (project) {
-            calculateSchedule(project, anchorDate);
+            calculateSchedule(project);
         }
-    }, [project, anchorDate, calculateSchedule]);
+    }, [project, calculateSchedule]);
 
     // Auto-save logic
     const debouncedProject = useDebounce(project, 1000);
@@ -107,69 +148,58 @@ export function useProject(projectId: string | null) {
     // Actions
     const addTask = (task: Task) => {
         if (!project) return;
-        isDirty.current = true;
-        setProject(p => p ? { ...p, tasks: [...p.tasks, task] } : null);
+        const newProject = { ...project, tasks: [...project.tasks, task] };
+        updateProject(newProject);
     };
 
     const removeTask = (taskId: string) => {
         if (!project) return;
-        isDirty.current = true;
-        setProject(p => {
-            if (!p) return null;
-            const newTasks = p.tasks
-                .filter(t => t.id !== taskId)
-                .map(t => ({ ...t, dependencies: t.dependencies.filter(d => d !== taskId) }));
-            const newAnchors = { ...p.anchors };
-            delete newAnchors[taskId];
-            return { ...p, tasks: newTasks, anchors: newAnchors };
-        });
+
+        const newTasks = project.tasks
+            .filter(t => t.id !== taskId)
+            .map(t => ({ ...t, dependencies: t.dependencies.filter(d => d !== taskId) }));
+        const newAnchors = { ...project.anchors };
+        delete newAnchors[taskId];
+
+        const newProject = { ...project, tasks: newTasks, anchors: newAnchors };
+        updateProject(newProject);
     };
 
     const editTask = (updatedTask: Task) => {
         if (!project) return;
-        isDirty.current = true;
-        setProject(p => p ? { ...p, tasks: p.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) } : null);
+        const newProject = { ...project, tasks: project.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) };
+        updateProject(newProject);
     };
 
     const toggleAnchor = (taskId: string) => {
         if (!project) return;
-        isDirty.current = true;
-        setProject(p => {
-            if (!p) return null;
-            const newAnchors = { ...p.anchors };
-            if (newAnchors[taskId]) {
-                delete newAnchors[taskId];
-            } else {
-                // Default to existing anchor date or today if none
-                // If the task already has a computed end date, maybe use that?
-                // For now, keep simple: use current global anchor or today
-                let date = anchorDate;
-                if (!date) {
-                    date = new Date().toISOString().split('T')[0];
-                }
 
-                // If we have a computed schedule, we could try to anchor it where it currently is?
-                // But simplified: just use the default
-                newAnchors[taskId] = date;
+        const newAnchors = { ...project.anchors };
+        if (newAnchors[taskId]) {
+            delete newAnchors[taskId];
+        } else {
+            let date = anchorDate;
+            if (!date) {
+                date = new Date().toISOString().split('T')[0];
             }
-            return { ...p, anchors: newAnchors };
-        });
+            newAnchors[taskId] = date;
+        }
+
+        const newProject = { ...project, anchors: newAnchors };
+        updateProject(newProject);
     };
 
     // Update anchor date for a specific task
     const updateTaskAnchor = (taskId: string, newDate: string) => {
-        if (project) {
-            isDirty.current = true;
-            setProject(p => {
-                if (!p) return null;
-                const newAnchors = { ...p.anchors };
-                newAnchors[taskId] = newDate;
-                return { ...p, anchors: newAnchors };
-            });
-            // Also update the UI helper state if this is the "main" one being edited?
-            // For now, let's just update the local input state so the UI doesn't flicker
-            setAnchorDate(newDate);
-        }
+        if (!project) return;
+
+        const newAnchors = { ...project.anchors };
+        newAnchors[taskId] = newDate;
+
+        const newProject = { ...project, anchors: newAnchors };
+        updateProject(newProject);
+
+        setAnchorDate(newDate);
     };
 
     // Derived state for UI
@@ -187,6 +217,8 @@ export function useProject(projectId: string | null) {
         removeTask,
         editTask,
         toggleAnchor,
+        undo,
+        redo,
         anchorTaskIds
     };
 }

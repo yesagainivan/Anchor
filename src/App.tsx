@@ -31,6 +31,8 @@ function App() {
     editTask,
     toggleAnchor,
     updateTaskAnchor,
+    undo,
+    redo,
     anchorTaskIds
   } = useProject(activeProjectId);
 
@@ -58,6 +60,27 @@ function App() {
       return () => mediaQuery.removeEventListener('change', handler);
     }
   }, [theme, configLoaded]);
+
+  // Global Undo/Redo shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Cmd+Z (Mac) or Ctrl+Z (Windows/Linux)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        if (e.shiftKey) {
+          // Redo
+          e.preventDefault();
+          redo();
+        } else {
+          // Undo
+          e.preventDefault();
+          undo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   const handleTaskMove = useCallback(async (taskId: string, newDate: string) => {
     // When moving a task, we now anchor JUST that task to the new date
