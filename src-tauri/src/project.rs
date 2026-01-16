@@ -114,11 +114,23 @@ pub fn load_project(app: AppHandle, id: String) -> Result<Project, String> {
     Ok(project)
 }
 
+fn parse_date_or_datetime(s: &str) -> Option<chrono::NaiveDateTime> {
+    // Try DateTime first
+    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S") {
+        return Some(dt);
+    }
+    // Fallback to Date (end of day)
+    if let Ok(d) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+        return d.and_hms_opt(23, 59, 59);
+    }
+    None
+}
+
 #[tauri::command]
 pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
     let dir = get_projects_dir(&app)?;
     let mut projects = Vec::new();
-    let today = chrono::Local::now().date_naive();
+    let now = chrono::Local::now().naive_local();
 
     for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
@@ -133,19 +145,20 @@ pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
 
                     if !project.anchors.is_empty() {
                         // Default to Anchor for deadline/status
-                        let mut anchors: Vec<chrono::NaiveDate> = project
+                        let mut anchors: Vec<chrono::NaiveDateTime> = project
                             .anchors
                             .values()
-                            .filter_map(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-                            .filter(|d| *d >= today)
+                            .filter_map(|d| parse_date_or_datetime(d))
+                            .filter(|d| *d >= now)
                             .collect();
                         anchors.sort();
 
                         // Default to nearest anchor
                         if let Some(anchor) = anchors.first() {
-                            next_deadline = Some(anchor.to_string());
-                            let days = (*anchor - today).num_days();
-                            status = if days < 0 {
+                            next_deadline = Some(anchor.format("%Y-%m-%d %H:%M").to_string());
+                            let duration = *anchor - now;
+                            let days = duration.num_days();
+                            status = if duration.num_seconds() < 0 {
                                 "overdue".to_string()
                             } else if days <= 5 {
                                 "urgent".to_string()
@@ -168,16 +181,18 @@ pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
                                 .iter()
                                 .filter(|t| !t.completed)
                                 .filter_map(|t| {
-                                    let start = chrono::NaiveDate::parse_from_str(
+                                    let start = chrono::NaiveDateTime::parse_from_str(
                                         &t.start_date,
-                                        "%Y-%m-%d",
+                                        "%Y-%m-%dT%H:%M:%S",
                                     )
                                     .ok()?;
-                                    let end =
-                                        chrono::NaiveDate::parse_from_str(&t.end_date, "%Y-%m-%d")
-                                            .ok()?;
-                                    // Include if it ends today or in future
-                                    if end >= today {
+                                    let end = chrono::NaiveDateTime::parse_from_str(
+                                        &t.end_date,
+                                        "%Y-%m-%dT%H:%M:%S",
+                                    )
+                                    .ok()?;
+                                    // Include if it ends now or in future
+                                    if end >= now {
                                         Some((start, end, t))
                                     } else {
                                         None
@@ -190,35 +205,44 @@ pub fn list_projects(app: AppHandle) -> Result<Vec<ProjectMetadata>, String> {
 
                             if let Some((start, end, task)) = active_or_upcoming.first() {
                                 // Update Next Deadline to this task's deadline
-                                next_deadline = Some(end.to_string());
+                                next_deadline = Some(end.format("%Y-%m-%d %H:%M").to_string());
 
                                 // Update Status based on THIS deadline
-                                let days = (*end - today).num_days();
-                                status = if days < 0 {
+                                let duration = *end - now;
+                                let days = duration.num_days();
+                                status = if duration.num_seconds() < 0 {
                                     "overdue".to_string()
-                                } else if days <= 5 {
+                                } else if days <= 2 {
                                     "urgent".to_string()
                                 } else {
                                     "on_track".to_string()
                                 };
 
                                 // Set Current Focus text
-                                if today >= *start && today <= *end {
+                                if now >= *start && now <= *end {
                                     current_focus = Some(task.name.clone());
                                 } else {
-                                    let start_days = (*start - today).num_days();
-                                    current_focus = Some(format!(
-                                        "{} (starts in {} days)",
-                                        task.name, start_days
-                                    ));
+                                    let start_duration = *start - now;
+                                    let start_days = start_duration.num_days();
+                                    let start_hours = start_duration.num_hours();
+
+                                    if start_days > 0 {
+                                        current_focus = Some(format!(
+                                            "{} (starts in {} days)",
+                                            task.name, start_days
+                                        ));
+                                    } else {
+                                        current_focus = Some(format!(
+                                            "{} (starts in {} hours)",
+                                            task.name, start_hours
+                                        ));
+                                    }
                                 }
                             } else {
                                 current_focus = Some("All tasks completed".to_string());
                             }
                         }
                     }
-
-                    // Placeholder for list_projects, real calculation happens in get_widget_info
 
                     projects.push(ProjectMetadata {
                         id: project.id,
@@ -303,7 +327,7 @@ pub fn get_widget_info(
     let schedule =
         crate::scheduler::calculate_backwards_schedule(req).map_err(|e| e.to_string())?;
 
-    let today = chrono::Local::now().date_naive();
+    let now = chrono::Local::now().naive_local();
 
     // 6. Process tasks for "Up Next" list
     let mut upcoming_tasks = Vec::new();
@@ -318,14 +342,14 @@ pub fn get_widget_info(
         }
 
         if let (Ok(start), Ok(end)) = (
-            chrono::NaiveDate::parse_from_str(&task.start_date, "%Y-%m-%d"),
-            chrono::NaiveDate::parse_from_str(&task.end_date, "%Y-%m-%d"),
+            chrono::NaiveDateTime::parse_from_str(&task.start_date, "%Y-%m-%dT%H:%M:%S"),
+            chrono::NaiveDateTime::parse_from_str(&task.end_date, "%Y-%m-%dT%H:%M:%S"),
         ) {
-            // Only show tasks that end today or in the future
-            if end >= today {
-                let status = if end < today {
+            // Only show tasks that end now or in the future
+            if end >= now {
+                let status = if end < now {
                     "overdue".to_string()
-                } else if start <= today && end >= today {
+                } else if start <= now && end >= now {
                     "active".to_string()
                 } else {
                     "future".to_string()
@@ -354,8 +378,10 @@ pub fn get_widget_info(
     let mut active_or_next = schedule
         .iter()
         .filter_map(|t| {
-            let start = chrono::NaiveDate::parse_from_str(&t.start_date, "%Y-%m-%d").ok()?;
-            let end = chrono::NaiveDate::parse_from_str(&t.end_date, "%Y-%m-%d").ok()?;
+            let start =
+                chrono::NaiveDateTime::parse_from_str(&t.start_date, "%Y-%m-%dT%H:%M:%S").ok()?;
+            let end =
+                chrono::NaiveDateTime::parse_from_str(&t.end_date, "%Y-%m-%dT%H:%M:%S").ok()?;
 
             Some((start, end, t))
         })
@@ -367,12 +393,12 @@ pub fn get_widget_info(
         if t.completed {
             return false;
         } // prioritized uncompleted
-          // If today is in range, this is definitely it
-        if today >= *start && today <= *end {
+          // If now is in range, this is definitely it
+        if now >= *start && now <= *end {
             return true;
         }
-        // If today is before start, this is the upcoming one
-        if today < *start {
+        // If now is before start, this is the upcoming one
+        if now < *start {
             return true;
         }
         false
@@ -382,10 +408,10 @@ pub fn get_widget_info(
         if task.completed {
             Some(1.0f32)
         } else {
-            let total_days = (*end - *start).num_days().max(1) as f32; // ensure at least 1 day duration so no div by 0
-            let elapsed = (today - *start).num_days().max(0) as f32;
+            let total_seconds = (*end - *start).num_seconds().max(1) as f32;
+            let elapsed = (now - *start).num_seconds().max(0) as f32;
 
-            let p = elapsed / total_days;
+            let p = elapsed / total_seconds;
             Some(p.clamp(0.0f32, 1.0f32))
         }
     } else {

@@ -3,7 +3,7 @@
 //! Implements the core scheduling algorithm that works backwards from anchor dates
 //! to determine when predecessor tasks must start.
 
-use chrono::{Duration, NaiveDate};
+use chrono::{Duration, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use thiserror::Error;
@@ -14,6 +14,7 @@ pub struct Task {
     pub id: String,
     pub name: String,
     pub duration_days: i64,
+    pub duration_minutes: Option<i64>, // New field for minute precision
     /// IDs of tasks that must complete before this one can start.
     pub dependencies: Vec<String>,
     #[serde(default)]
@@ -29,12 +30,12 @@ pub struct Task {
 pub struct ScheduledTask {
     pub id: String,
     pub name: String,
-    pub start_date: String,
-    pub end_date: String,
+    pub start_date: String, // ISO 8601 DateTime string
+    pub end_date: String,   // ISO 8601 DateTime string
     pub completed: bool,
     pub notes: Option<String>,
     pub is_critical: bool,
-    pub slack_days: i64,
+    pub slack_minutes: i64, // Changed from slack_days
     pub is_milestone: bool,
 }
 
@@ -42,7 +43,7 @@ pub struct ScheduledTask {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScheduleRequest {
     pub tasks: Vec<Task>,
-    /// Map of TaskID → EndDate (YYYY-MM-DD) for anchor tasks.
+    /// Map of TaskID → EndDate (ISO 8601 DateTime or YYYY-MM-DD) for anchor tasks.
     pub anchors: HashMap<String, String>,
 }
 
@@ -64,6 +65,23 @@ pub enum ScheduleError {
     #[allow(dead_code)]
     #[error("Cycle detected in task dependencies")]
     CycleDetected,
+}
+
+fn parse_date_string(s: &str) -> Result<NaiveDateTime, String> {
+    // Try ISO 8601 DateTime first
+    if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S") {
+        return Ok(dt);
+    }
+    // Try YYYY-MM-DD and assume end of day (23:59:59)
+    if let Ok(d) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+        return Ok(d
+            .and_hms_opt(23, 59, 59)
+            .ok_or("Invalid time construction")?);
+    }
+    Err(format!(
+        "Could not parse date '{}', expected %Y-%m-%dT%H:%M:%S or %Y-%m-%d",
+        s
+    ))
 }
 
 /// Calculate a backwards schedule with critical path analysis.
@@ -89,17 +107,17 @@ pub fn calculate_backwards_schedule(
     }
 
     // Initialize end dates from anchors
-    let mut late_finish: HashMap<String, NaiveDate> = HashMap::new();
+    let mut late_finish: HashMap<String, NaiveDateTime> = HashMap::new();
     for (task_id, date_str) in &request.anchors {
         if !task_map.contains_key(task_id) {
             return Err(ScheduleError::AnchorTaskNotFound(task_id.clone()));
         }
-        let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d").map_err(|e| {
-            ScheduleError::InvalidAnchorDate {
-                task_id: task_id.clone(),
-                details: e.to_string(),
-            }
+
+        let date = parse_date_string(date_str).map_err(|e| ScheduleError::InvalidAnchorDate {
+            task_id: task_id.clone(),
+            details: e,
         })?;
+
         late_finish.insert(task_id.clone(), date);
     }
 
@@ -109,10 +127,10 @@ pub fn calculate_backwards_schedule(
         .collect();
 
     let mut queue: Vec<String> = request.anchors.keys().cloned().collect();
-    let mut visited_backward = HashSet::new(); // Ensure we don't process same node twice in queue loop (though topological sort handles this naturally with counts)
+    let mut visited_backward = HashSet::new();
 
     // We need to capture the results of the backward pass
-    let mut backward_schedule: HashMap<String, (NaiveDate, NaiveDate)> = HashMap::new(); // id -> (start, end)
+    let mut backward_schedule: HashMap<String, (NaiveDateTime, NaiveDateTime)> = HashMap::new(); // id -> (start, end)
 
     // Using a proper topological sort based on unscheduled_consumers count
     while let Some(task_id) = queue.pop() {
@@ -129,7 +147,14 @@ pub fn calculate_backwards_schedule(
             .get(&task_id)
             .ok_or_else(|| ScheduleError::NoEndDateComputed(task_id.clone()))?;
 
-        let ls = lf - Duration::days(task.duration_days);
+        // Calculate duration logic
+        let duration = if let Some(mins) = task.duration_minutes {
+            Duration::minutes(mins)
+        } else {
+            Duration::days(task.duration_days)
+        };
+
+        let ls = lf - duration;
         backward_schedule.insert(task.id.clone(), (ls, lf));
         visited_backward.insert(task_id.clone());
 
@@ -138,7 +163,7 @@ pub fn calculate_backwards_schedule(
             // Provider must end by this task's start (Late Finish of provider <= Late Start of consumer)
             let entry = late_finish
                 .entry(provider_id.clone())
-                .or_insert(NaiveDate::MAX);
+                .or_insert(NaiveDateTime::MAX);
             if ls < *entry {
                 *entry = ls;
             }
@@ -181,8 +206,8 @@ pub fn calculate_backwards_schedule(
         .min()
         .ok_or(ScheduleError::CycleDetected)?; // Should not be empty if tasks exist
 
-    let mut early_finish: HashMap<String, NaiveDate> = HashMap::new();
-    let mut early_start: HashMap<String, NaiveDate> = HashMap::new();
+    let mut early_finish: HashMap<String, NaiveDateTime> = HashMap::new();
+    let mut early_start: HashMap<String, NaiveDateTime> = HashMap::new();
 
     // In-degrees for Forward Pass are simply the number of dependencies
     let mut in_degree: HashMap<String, usize> = request
@@ -221,7 +246,13 @@ pub fn calculate_backwards_schedule(
             max_ef
         };
 
-        let ef = es + Duration::days(task.duration_days);
+        let duration = if let Some(mins) = task.duration_minutes {
+            Duration::minutes(mins)
+        } else {
+            Duration::days(task.duration_days)
+        };
+
+        let ef = es + duration;
         early_start.insert(task_id.clone(), es);
         early_finish.insert(task_id.clone(), ef);
 
@@ -247,18 +278,18 @@ pub fn calculate_backwards_schedule(
             let es = early_start.get(&task.id).unwrap_or(ls); // Fallback if forward pass missed it (disconnected?)
 
             // Slack = LS - ES
-            let slack_days = (*ls - *es).num_days();
-            let is_critical = slack_days <= 0; // Float precision or tight constraints
+            let slack_minutes = (*ls - *es).num_minutes();
+            let is_critical = slack_minutes <= 0; // Float precision or tight constraints
 
             final_schedule.push(ScheduledTask {
                 id: task.id.clone(),
                 name: task.name.clone(),
-                start_date: ls.to_string(),
-                end_date: lf.to_string(),
+                start_date: ls.format("%Y-%m-%dT%H:%M:%S").to_string(),
+                end_date: lf.format("%Y-%m-%dT%H:%M:%S").to_string(),
                 completed: task.completed,
                 notes: task.notes.clone(),
                 is_critical,
-                slack_days,
+                slack_minutes,
                 is_milestone: task.is_milestone,
             });
         }
@@ -272,13 +303,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_simple_chain() {
+    fn test_simple_chain_with_days() {
         let request = ScheduleRequest {
             tasks: vec![
                 Task {
                     id: "a".into(),
                     name: "Task A".into(),
                     duration_days: 5,
+                    duration_minutes: None,
                     dependencies: vec![],
                     completed: false,
                     notes: None,
@@ -288,6 +320,7 @@ mod tests {
                     id: "b".into(),
                     name: "Task B".into(),
                     duration_days: 3,
+                    duration_minutes: None,
                     dependencies: vec!["a".into()],
                     completed: false,
                     notes: None,
@@ -297,8 +330,49 @@ mod tests {
             anchors: [("b".into(), "2026-01-15".into())].into(),
         };
 
-        let result = calculate_backwards_schedule(request).unwrap();
+        let result = calculate_backwards_schedule(request).expect("Should work with days");
         assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_minute_granularity() {
+        // Task A (30 mins) -> Task B (60 mins) -> Anchor at 2026-01-15T10:00:00
+        // Expected: B starts at 09:00, A starts at 08:30
+        let request = ScheduleRequest {
+            tasks: vec![
+                Task {
+                    id: "a".into(),
+                    name: "Task A".into(),
+                    duration_days: 0,
+                    duration_minutes: Some(30),
+                    dependencies: vec![],
+                    completed: false,
+                    notes: None,
+                    is_milestone: false,
+                },
+                Task {
+                    id: "b".into(),
+                    name: "Task B".into(),
+                    duration_days: 0,
+                    duration_minutes: Some(60),
+                    dependencies: vec!["a".into()],
+                    completed: false,
+                    notes: None,
+                    is_milestone: false,
+                },
+            ],
+            anchors: [("b".into(), "2026-01-15T10:00:00".into())].into(),
+        };
+
+        let result = calculate_backwards_schedule(request).expect("Should work with minutes");
+
+        let task_a = result.iter().find(|t| t.id == "a").unwrap();
+        let task_b = result.iter().find(|t| t.id == "b").unwrap();
+
+        assert!(task_b.end_date.contains("10:00:00"));
+        assert!(task_b.start_date.contains("09:00:00"));
+        assert!(task_a.end_date.contains("09:00:00"));
+        assert!(task_a.start_date.contains("08:30:00"));
     }
 
     #[test]
@@ -309,6 +383,7 @@ mod tests {
                     id: "a".into(),
                     name: "Task A".into(),
                     duration_days: 5,
+                    duration_minutes: None,
                     dependencies: vec![],
                     completed: false,
                     notes: None,
@@ -318,6 +393,7 @@ mod tests {
                     id: "b".into(),
                     name: "Task B".into(),
                     duration_days: 3,
+                    duration_minutes: None,
                     dependencies: vec!["a".into()],
                     completed: false,
                     notes: None,

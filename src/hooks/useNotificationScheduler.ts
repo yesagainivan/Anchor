@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ScheduledTask } from '../types';
 import { useNotifications } from './useNotifications';
-import { format } from 'date-fns';
+import { format, parseISO, isSameDay, isPast, isFuture } from 'date-fns';
 
 export const useNotificationScheduler = (
     scheduledTasks: ScheduledTask[] | undefined
@@ -23,33 +23,48 @@ export const useNotificationScheduler = (
         if (!scheduledTasks || !permissionGranted) return;
 
         const checkAndNotify = () => {
-            const today = format(new Date(), 'yyyy-MM-dd');
+            const now = new Date();
+            const todayStr = format(now, 'yyyy-MM-dd');
 
             scheduledTasks.forEach((task) => {
                 // Skip completed tasks
                 if (task.completed) return;
 
-                const notificationKey = `anchor_notified_${task.id}_${today}`;
+                const notificationKey = `anchor_notified_${task.id}_${todayStr}`;
                 const hasNotified = localStorage.getItem(notificationKey);
 
                 if (hasNotified) return;
 
-                // Logic 1: Task starts today
-                if (task.start_date === today) {
+                const start = parseISO(task.start_date);
+                const end = parseISO(task.end_date);
+
+                // Logic 1: Task starts "soon" or "now" (within last 15 mins or next 5 mins?)
+                // Actually, if it's Minute granularity, we want to notify exactly when it starts.
+                // Or if it started recently and we haven't notified.
+                // Simple logic: If start time is in the past (active) and we haven't notified today.
+                // Constraint: Don't notify for tasks strictly in the past (started yesterday).
+                // So: isSameDay(start, now) && isPast(start)
+
+                if (isSameDay(start, now) && isPast(start)) {
                     notify(
                         '⚓ Time to Start!',
-                        `"${task.name}" is scheduled to start today to stay on track.`
+                        `"${task.name}" is scheduled to start now.`
                     );
                     localStorage.setItem(notificationKey, 'true');
                 }
 
-                // Logic 2: Critical Path Warning (If slack is zero and it hasn't finished)
-                // We only notify if it's currently active (start date <= today <= end date)
+                // Logic 2: Critical Path Warning
                 else if (
                     task.is_critical &&
-                    task.start_date <= today &&
-                    task.end_date >= today
+                    isPast(start) &&
+                    isFuture(end)
                 ) {
+                    // Only notify if we haven't already
+                    // This duplicates the above if start is today.
+                    // Prioritize "Time to Start".
+
+                    // We might want a separate key or check for critical warning? 
+                    // reusing same key means only 1 notification per task per day.
                     notify(
                         '🔥 Critical Task',
                         `"${task.name}" is critical and active. Any delay will push the deadline!`
@@ -62,8 +77,8 @@ export const useNotificationScheduler = (
         // Run immediately on load/change
         checkAndNotify();
 
-        // Check periodically (every hour) to handle overnight sessions
-        const intervalId = setInterval(checkAndNotify, 60 * 60 * 1000);
+        // Check periodically (every minute)
+        const intervalId = setInterval(checkAndNotify, 60 * 1000);
 
         return () => clearInterval(intervalId);
 

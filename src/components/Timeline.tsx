@@ -356,12 +356,24 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                             const start = parseISO(task.start_date);
                             const end = parseISO(task.end_date);
                             const offset = differenceInDays(start, rangeStart);
-                            const duration = differenceInDays(end, start) || 1;
+                            // Calculated float duration for bar width
+                            const durationMs = end.getTime() - start.getTime();
+                            const durationDays = Math.max(durationMs / (1000 * 60 * 60 * 24), 0.1); // min width
 
                             const leftPct = (offset / totalDays) * 100;
-                            const widthPct = (duration / totalDays) * 100;
+                            const widthPct = (durationDays / totalDays) * 100;
 
                             const isPast = isBefore(end, today);
+
+                            // Label logic
+                            let durationLabel = '';
+                            const days = differenceInDays(end, start);
+                            if (days >= 1) {
+                                durationLabel = `${days}d`;
+                            } else {
+                                const hours = Math.round(durationMs / (1000 * 60 * 60) * 10) / 10;
+                                durationLabel = `${hours}h`;
+                            }
 
                             // Determine bar color class
                             let barClass = 'bg-gradient-to-r from-brand to-brand-hover';
@@ -380,7 +392,6 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                                     : 'bg-purple-500 border-2 border-surface shadow-lg';
                             }
 
-                            // const stickyBgClass = index % 2 === 0 ? 'bg-surface/50 backdrop-blur-sm' : 'bg-surface-alt/50 backdrop-blur-sm';
                             const stickyBgClass = index % 2 === 0 ? 'bg-surface/70 backdrop-blur-xs shadow-[2px_0px_4px_rgba(0,0,0,0.1)]' : 'bg-surface-alt/70 backdrop-blur-xs shadow-[2px_0px_4px_rgba(0,0,0,0.1)]';
 
                             return (
@@ -409,7 +420,7 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                                                 </span>
                                             )}
                                         </div>
-                                        <span className="text-xs text-text-faint">{duration}d</span>
+                                        <span className="text-xs text-text-faint">{durationLabel}</span>
                                     </div>
 
                                     <div className="flex-1 relative">
@@ -417,7 +428,7 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                                             className={`absolute h-6 rounded-md shadow-sm transition-all cursor-pointer hover:brightness-110 z-10 ${barClass} flex items-center justify-center`}
                                             style={{
                                                 left: `${leftPct}%`,
-                                                width: `${Math.max(widthPct, 1.5)}%`,
+                                                width: `${Math.max(widthPct, 0.5)}%`,
                                                 top: '50%',
                                                 transform: 'translateY(-50%)'
                                             }}

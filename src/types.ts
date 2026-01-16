@@ -2,6 +2,7 @@ export interface Task {
     id: string;
     name: string;
     duration_days: number;
+    duration_minutes?: number; // Optional minute precision
     dependencies: string[];
     completed?: boolean;
     notes?: string;

@@ -28,6 +28,7 @@ export function TaskForm({
 }: TaskFormProps) {
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState(1);
+    const [durationUnit, setDurationUnit] = useState<'days' | 'hours' | 'minutes'>('days');
     const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
     const [newTaskNotes, setNewTaskNotes] = useState('');
     const [isMilestone, setIsMilestone] = useState(false);
@@ -55,7 +56,8 @@ export function TaskForm({
             const newTask: Task = {
                 id: crypto.randomUUID(),
                 name: newTaskName.trim(),
-                duration_days: newTaskDuration,
+                duration_days: durationUnit === 'days' ? newTaskDuration : 0,
+                duration_minutes: durationUnit === 'minutes' ? newTaskDuration : durationUnit === 'hours' ? newTaskDuration * 60 : undefined,
                 dependencies: selectedDependencies,
                 notes: newTaskNotes.trim() || undefined,
                 is_milestone: isMilestone,
@@ -100,10 +102,14 @@ export function TaskForm({
                     Target Deadline
                 </label>
                 <input
-                    type="date"
+                    type="datetime-local"
                     className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text focus:border-brand focus:ring-0 outline-none transition-colors"
-                    value={anchorDate}
-                    onChange={(e) => onAnchorDateChange(e.target.value)}
+                    value={anchorDate.length > 16 ? anchorDate.slice(0, 16) : anchorDate}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        // Build full ISO string with seconds if missing
+                        onAnchorDateChange(val.length === 16 ? `${val}:00` : val);
+                    }}
                 />
             </div>
 
@@ -130,14 +136,24 @@ export function TaskForm({
                         <div className="flex-1">
                             <label className="block text-xs text-text-muted mb-1">Duration</label>
                             <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    min="1"
-                                    className="w-full bg-surface border border-border rounded-lg p-2 text-sm text-text focus:border-brand focus:ring-0 outline-none transition-colors"
-                                    value={newTaskDuration}
-                                    onChange={(e) => setNewTaskDuration(Math.max(1, parseInt(e.target.value) || 1))}
-                                />
-                                <span className="text-xs text-text-faint whitespace-nowrap">days</span>
+                                <div className="flex bg-surface border border-border rounded-lg overflow-hidden">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        className="w-full bg-transparent p-2 text-sm text-text focus:outline-none"
+                                        value={newTaskDuration}
+                                        onChange={(e) => setNewTaskDuration(Math.max(1, parseInt(e.target.value) || 1))}
+                                    />
+                                    <select
+                                        value={durationUnit}
+                                        onChange={(e) => setDurationUnit(e.target.value as any)}
+                                        className="bg-surface-alt border-l border-border px-2 text-xs text-text-muted focus:outline-none"
+                                    >
+                                        <option value="days">days</option>
+                                        <option value="hours">hours</option>
+                                        <option value="minutes">mins</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -265,7 +281,11 @@ export function TaskForm({
                                                         {task.name}
                                                     </span>
                                                     <span className="text-xs text-text-faint">
-                                                        {task.duration_days}d
+                                                        {task.duration_minutes
+                                                            ? (task.duration_minutes >= 60
+                                                                ? `${Math.round(task.duration_minutes / 60 * 10) / 10}h`
+                                                                : `${task.duration_minutes}m`)
+                                                            : `${task.duration_days}d`}
                                                     </span>
                                                     {task.is_milestone && (
                                                         <span className="text-purple-500" title="Milestone">
