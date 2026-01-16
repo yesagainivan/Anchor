@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Task, ScheduledTask } from '../types';
-import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, EditIcon, DiamondIcon } from './icons';
+import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, EditIcon, DiamondIcon, TimelineIcon } from './icons';
 import { Checkbox } from './Checkbox';
 import { format, parseISO } from 'date-fns';
 
@@ -26,6 +26,8 @@ export function TaskDetailsView({
     const [editName, setEditName] = useState('');
     const [editNotes, setEditNotes] = useState('');
     const [isMilestoneEditing, setIsMilestoneEditing] = useState(false);
+    const [editDuration, setEditDuration] = useState(1);
+    const [editDependencies, setEditDependencies] = useState<string[]>([]);
 
     // Find the task data
     const taskDef = tasks.find(t => t.id === taskId);
@@ -36,6 +38,8 @@ export function TaskDetailsView({
             setEditName(taskDef.name);
             setEditNotes(taskDef.notes || '');
             setIsMilestoneEditing(taskDef.is_milestone || false);
+            setEditDuration(taskDef.duration_days);
+            setEditDependencies(taskDef.dependencies || []);
         }
     }, [taskDef, isEditing]); // Reset when entering edit mode or task changes
 
@@ -55,7 +59,9 @@ export function TaskDetailsView({
             ...taskDef,
             name: editName,
             notes: editNotes.trim() || undefined,
-            is_milestone: isMilestoneEditing
+            is_milestone: isMilestoneEditing,
+            duration_days: editDuration,
+            dependencies: editDependencies
         });
         setIsEditing(false);
     };
@@ -108,7 +114,20 @@ export function TaskDetailsView({
 
                         <div className="flex items-center gap-4 mt-2 text-sm text-text-muted">
                             <div className="flex items-center gap-1.5">
-                                <span className="font-medium bg-surface-alt px-2 py-0.5 rounded text-xs">{taskDef.duration_days} days</span>
+                                {isEditing ? (
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={editDuration}
+                                            onChange={e => setEditDuration(parseInt(e.target.value) || 1)}
+                                            className="w-12 bg-surface border border-border rounded px-1.5 py-0.5 text-xs text-text focus:ring-1 focus:ring-brand outline-none"
+                                        />
+                                        <span className="text-xs">days</span>
+                                    </div>
+                                ) : (
+                                    <span className="font-medium bg-surface-alt px-2 py-0.5 rounded text-xs">{taskDef.duration_days} days</span>
+                                )}
                             </div>
                             {taskSched && (
                                 <div className="flex items-center gap-1.5 text-text-faint">
@@ -173,20 +192,64 @@ export function TaskDetailsView({
             <div className={`p-6 flex-1 overflow-auto ${isEditing ? 'bg-surface-alt/20' : ''}`}>
                 <div className="max-w-3xl mx-auto h-full flex flex-col">
                     <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
-                            <MemoIcon className="w-4 h-4" />
-                            Notes
-                        </h3>
+                        {!isEditing && (
+                            <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                                <MemoIcon className="w-4 h-4" />
+                                Notes
+                            </h3>
+                        )}
                     </div>
 
                     <div className="flex-1 min-h-[200px] h-full">
                         {isEditing ? (
-                            <textarea
-                                className="w-full h-full bg-surface border border-border rounded-lg p-4 text-base text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none resize-none font-mono leading-relaxed"
-                                placeholder="# Add details\n\n- Requirements\n- Links\n- Ideas"
-                                value={editNotes}
-                                onChange={e => setEditNotes(e.target.value)}
-                            />
+                            <div className="flex flex-col gap-6 h-full">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2 mb-3">
+                                        <TimelineIcon className="w-4 h-4" />
+                                        Dependencies
+                                    </h3>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {tasks.filter(t => t.id !== taskId).length > 0 ? (
+                                            tasks
+                                                .filter(t => t.id !== taskId)
+                                                .map(t => (
+                                                    <button
+                                                        key={t.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (editDependencies.includes(t.id)) {
+                                                                setEditDependencies(editDependencies.filter(id => id !== t.id));
+                                                            } else {
+                                                                setEditDependencies([...editDependencies, t.id]);
+                                                            }
+                                                        }}
+                                                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${editDependencies.includes(t.id)
+                                                            ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
+                                                            : 'bg-surface text-text-muted hover:bg-surface-hover border border-border'
+                                                            }`}
+                                                    >
+                                                        {t.name}
+                                                    </button>
+                                                ))
+                                        ) : (
+                                            <p className="text-sm text-text-muted italic">No other tasks available to depend on.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 flex flex-col min-h-[200px]">
+                                    <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2 mb-2">
+                                        <MemoIcon className="w-4 h-4" />
+                                        Notes
+                                    </h3>
+                                    <textarea
+                                        className="w-full flex-1 bg-surface border border-border rounded-lg p-4 text-base text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none resize-none font-mono leading-relaxed"
+                                        placeholder="# Add details\n\n- Requirements\n- Links\n- Ideas"
+                                        value={editNotes}
+                                        onChange={e => setEditNotes(e.target.value)}
+                                    />
+                                </div>
+                            </div>
                         ) : (
                             <div className="prose prose-sm max-w-none text-text">
                                 {taskDef.notes ? (
