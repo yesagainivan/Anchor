@@ -55,17 +55,14 @@ export function useProject(projectId: string | null) {
     // Schedule calculation
     const calculateSchedule = useCallback(async (currentProject: Project, currentAnchorDate: string) => {
         const anchorIds = Object.keys(currentProject.anchors);
-        if (currentProject.tasks.length === 0 || anchorIds.length === 0 || !currentAnchorDate) {
+        if (currentProject.tasks.length === 0 || anchorIds.length === 0) {
             setScheduledTasks([]);
             return;
         }
 
         try {
-            // Ensure all anchors use the current effective date (simplification for now: global anchor date)
-            // In a more complex version, we might support different dates per anchor.
-            // But based on current App.tsx logic, they all share `anchorDate`.
-            const effectiveAnchors: Record<string, string> = {};
-            anchorIds.forEach(id => effectiveAnchors[id] = currentAnchorDate);
+            // Respect the individual anchor dates in the project!
+            const effectiveAnchors = currentProject.anchors;
 
             // Sync with project state
             const updatedProject = { ...currentProject, anchors: effectiveAnchors };
@@ -143,31 +140,35 @@ export function useProject(projectId: string | null) {
             if (newAnchors[taskId]) {
                 delete newAnchors[taskId];
             } else {
+                // Default to existing anchor date or today if none
+                // If the task already has a computed end date, maybe use that?
+                // For now, keep simple: use current global anchor or today
                 let date = anchorDate;
                 if (!date) {
                     date = new Date().toISOString().split('T')[0];
-                    setAnchorDate(date);
                 }
+
+                // If we have a computed schedule, we could try to anchor it where it currently is?
+                // But simplified: just use the default
                 newAnchors[taskId] = date;
             }
             return { ...p, anchors: newAnchors };
         });
     };
 
-    // Update anchor date for all anchors
-    const updateAnchorDate = (newDate: string) => {
-        setAnchorDate(newDate);
+    // Update anchor date for a specific task
+    const updateTaskAnchor = (taskId: string, newDate: string) => {
         if (project) {
             isDirty.current = true;
             setProject(p => {
                 if (!p) return null;
-                const newAnchors: Record<string, string> = {};
-                // Update all existing anchors to the new date
-                Object.keys(p.anchors).forEach(key => {
-                    newAnchors[key] = newDate;
-                });
+                const newAnchors = { ...p.anchors };
+                newAnchors[taskId] = newDate;
                 return { ...p, anchors: newAnchors };
             });
+            // Also update the UI helper state if this is the "main" one being edited?
+            // For now, let's just update the local input state so the UI doesn't flicker
+            setAnchorDate(newDate);
         }
     };
 
@@ -180,7 +181,8 @@ export function useProject(projectId: string | null) {
         loading,
         error,
         anchorDate,
-        setAnchorDate: updateAnchorDate,
+        setAnchorDate,
+        updateTaskAnchor,
         addTask,
         removeTask,
         editTask,

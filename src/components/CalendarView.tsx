@@ -141,7 +141,16 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
 
     const onEventDrop: withDragAndDropProps<CalendarEvent>['onEventDrop'] = (data) => {
         if (!onTaskMove) return;
-        const dateStr = format(data.start, 'yyyy-MM-dd');
+
+        let dateStr: string;
+
+        if (data.isAllDay) {
+            dateStr = format(new Date(data.start), 'yyyy-MM-dd');
+        } else {
+            // Preserve time if it's not an all-day event
+            dateStr = new Date(data.start).toISOString();
+        }
+
         onTaskMove((data.event as any).id, dateStr);
     };
 
@@ -235,6 +244,8 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
                         eventPropGetter={eventPropGetter}
                         slotPropGetter={slotPropGetter}
                         draggableAccessor={() => true}
+                        step={15}
+                        timeslots={4}
                         formats={{
                             timeGutterFormat: (date: Date, culture?: string, localizer?: any) =>
                                 localizer.format(date, 'h aa', culture),

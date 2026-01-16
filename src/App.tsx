@@ -30,6 +30,7 @@ function App() {
     removeTask,
     editTask,
     toggleAnchor,
+    updateTaskAnchor,
     anchorTaskIds
   } = useProject(activeProjectId);
 
@@ -59,13 +60,14 @@ function App() {
   }, [theme, configLoaded]);
 
   const handleTaskMove = useCallback(async (taskId: string, newDate: string) => {
-    // When moving a task, anchor it to the new date
-    setAnchorDate(newDate);
-    // And ensure the task is anchored
+    // When moving a task, we now anchor JUST that task to the new date
+    updateTaskAnchor(taskId, newDate);
+
+    // Ensure the task is marked as an anchor if it wasn't already
     if (!anchorTaskIds.includes(taskId)) {
       toggleAnchor(taskId);
     }
-  }, [toggleAnchor, anchorTaskIds, setAnchorDate]);
+  }, [toggleAnchor, updateTaskAnchor, anchorTaskIds]);
 
   const handleTaskDurationChange = useCallback((taskId: string, newDurationMinutes: number) => {
     const currentTasks = project?.tasks || [];
