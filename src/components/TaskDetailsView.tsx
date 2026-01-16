@@ -89,7 +89,7 @@ export function TaskDetailsView({
                         {isEditing ? (
                             <>
                                 <input
-                                    className="text-2xl font-bold bg-surface-alt border border-border rounded px-2 py-1 w-full text-text focus:ring-2 focus:ring-brand outline-none"
+                                    className="text-2xl font-bold bg-surface-alt border border-border rounded px-2 py-1 w-full text-text focus:border-brand focus:ring-0 outline-none transition-colors"
                                     value={editName}
                                     onChange={e => setEditName(e.target.value)}
                                     placeholder="Task Name"
@@ -121,7 +121,7 @@ export function TaskDetailsView({
                                             min="1"
                                             value={editDuration}
                                             onChange={e => setEditDuration(parseInt(e.target.value) || 1)}
-                                            className="w-12 bg-surface border border-border rounded px-1.5 py-0.5 text-xs text-text focus:ring-1 focus:ring-brand outline-none"
+                                            className="w-12 bg-surface border border-border rounded px-1.5 py-0.5 text-xs text-text focus:border-brand focus:ring-0 outline-none transition-colors"
                                         />
                                         <span className="text-xs">days</span>
                                     </div>
@@ -243,7 +243,7 @@ export function TaskDetailsView({
                                         Notes
                                     </h3>
                                     <textarea
-                                        className="w-full flex-1 bg-surface border border-border rounded-lg p-4 text-base text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none resize-none font-mono leading-relaxed"
+                                        className="w-full flex-1 bg-surface border border-border rounded-lg p-4 text-base text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none resize-none font-mono leading-relaxed transition-colors"
                                         placeholder="# Add details\n\n- Requirements\n- Links\n- Ideas"
                                         value={editNotes}
                                         onChange={e => setEditNotes(e.target.value)}

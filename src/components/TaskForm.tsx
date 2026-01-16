@@ -101,7 +101,7 @@ export function TaskForm({
                 </label>
                 <input
                     type="date"
-                    className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text focus:ring-2 focus:ring-brand focus:border-brand outline-none"
+                    className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text focus:border-brand focus:ring-0 outline-none transition-colors"
                     value={anchorDate}
                     onChange={(e) => onAnchorDateChange(e.target.value)}
                 />
@@ -117,10 +117,10 @@ export function TaskForm({
                     {editingTaskId ? 'Edit Task' : 'Add Task'}
                 </button>
 
-                <div className={`space-y-3 transition-all duration-300 ease-in-out overflow-hidden ${isFormCollapsed && !editingTaskId ? 'max-h-0 opacity-0 mt-0' : 'max-h-[500px] opacity-100 mt-3'}`}>
+                <div className={`space-y-3 p-1 -m-1 transition-all duration-300 ease-in-out overflow-hidden ${isFormCollapsed && !editingTaskId ? 'max-h-0 opacity-0 mt-0 pt-0 pb-0' : 'max-h-[500px] opacity-100 mt-3 p-1'}`}>
                     <input
                         placeholder="Task name"
-                        className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none"
+                        className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none transition-colors"
                         value={newTaskName}
                         onChange={(e) => setNewTaskName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
@@ -133,7 +133,7 @@ export function TaskForm({
                                 <input
                                     type="number"
                                     min="1"
-                                    className="w-full bg-surface border border-border rounded-lg p-2 text-sm text-text focus:ring-2 focus:ring-brand focus:border-brand outline-none"
+                                    className="w-full bg-surface border border-border rounded-lg p-2 text-sm text-text focus:border-brand focus:ring-0 outline-none transition-colors"
                                     value={newTaskDuration}
                                     onChange={(e) => setNewTaskDuration(Math.max(1, parseInt(e.target.value) || 1))}
                                 />
@@ -168,7 +168,7 @@ export function TaskForm({
                     <div>
                         <label className="block text-xs text-text-muted mb-1">Notes</label>
                         <textarea
-                            className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:ring-2 focus:ring-brand focus:border-brand outline-none min-h-[80px]"
+                            className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none min-h-[80px] transition-colors"
                             placeholder="Add details, requirements, or links (Markdown supported)"
                             value={newTaskNotes}
                             onChange={(e) => setNewTaskNotes(e.target.value)}
