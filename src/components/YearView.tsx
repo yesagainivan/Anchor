@@ -12,8 +12,18 @@ import {
     endOfWeek,
     parseISO
 } from 'date-fns';
-import { useMemo, memo } from 'react';
+import { useMemo, memo, useRef } from 'react';
 import { ScheduledTask } from '../types';
+
+// Task Status Priority: Critical > Milestone > Completed > Normal
+type DayStatus = 'critical' | 'milestone' | 'completed' | 'normal';
+
+interface DayData {
+    status: DayStatus;
+    count: number;
+}
+
+type MonthData = Map<number, DayData>; // Key: Date timestamp at midnight
 
 interface YearViewProps {
     date: Date;
@@ -22,41 +32,168 @@ interface YearViewProps {
     tasks: ScheduledTask[];
 }
 
-export function YearView({ date, onNavigate, onViewChange, tasks }: YearViewProps) {
-    const currentYear = date.getFullYear();
-    const yearStart = startOfYear(date);
-    const yearEnd = endOfYear(date);
-    // Optimization: Create a Set of "busy" timestamps (at midnight) for O(1) lookup
-    const busyDates = useMemo(() => {
-        const timestamps = new Set<number>();
+function getTaskStatus(task: ScheduledTask): DayStatus {
+    if (task.is_critical && !task.completed) return 'critical';
+    if (task.is_milestone) return 'milestone';
+    if (task.completed) return 'completed';
+    return 'normal';
+}
+
+function getPriority(status: DayStatus): number {
+    switch (status) {
+        case 'critical': return 4;
+        case 'milestone': return 3;
+        case 'completed': return 0; // Completed shouldn't override active normal?? Actually user said "All tasks on this day are completed => Green". 
+        // This logic is tricky: If a day has 1 critical and 1 completed, it should be Critical (Red).
+        // If a day has 1 normal and 1 completed, it should be Normal (Gold).
+        // Only if ALL are completed should it be Green.
+        // So 'completed' has LOWEST priority for *overriding*, but we need to track "all completed".
+        // Let's solve "All Completed" via logic: If any task is NOT completed, we track the highest priority of the active ones.
+        // If ALL are completed, we show Green.
+        case 'normal': return 1;
+    }
+    return 1;
+}
+
+// Helper to determine status for a mixed bag of tasks
+function resolveDayStatus(tasks: ScheduledTask[]): DayStatus {
+    if (tasks.length === 0) return 'normal';
+
+    const allCompleted = tasks.every(t => t.completed);
+    if (allCompleted) return 'completed';
+
+    // If not all completed, find the highest priority ACTIVE task
+    // actually, even completed critical tasks might be important? No, user said "Red: Critical task ACTIVE".
+    const activeTasks = tasks.filter(t => !t.completed);
+
+    let maxPrio = 0;
+    let finalStatus: DayStatus = 'normal';
+
+    for (const t of activeTasks) {
+        let status: DayStatus = 'normal';
+        if (t.is_critical) status = 'critical';
+        else if (t.is_milestone) status = 'milestone';
+
+        const outputPrio = getPriority(status);
+        if (outputPrio > maxPrio) {
+            maxPrio = outputPrio;
+            finalStatus = status;
+        }
+    }
+    return finalStatus;
+}
+
+// Custom hook to partition data and preserve references
+function useYearData(tasks: ScheduledTask[], year: number) {
+    const prevDataRef = useRef<Record<string, MonthData>>({});
+
+    return useMemo(() => {
+        // 1. Build raw data for the year
+        const rawMap: Record<string, Map<number, ScheduledTask[]>> = {};
+        // We map MonthKey -> (DayTimestamp -> Task[]) first to resolve statuses correctly
+
+        const yearStart = startOfYear(new Date(year, 0, 1));
+        const yearEnd = endOfYear(new Date(year, 0, 1));
 
         tasks.forEach(task => {
             if (!task.start_date || !task.end_date) return;
-
             const start = parseISO(task.start_date);
             const end = parseISO(task.end_date);
 
-            // Normalize to start of day to avoid time issues
-            start.setHours(0, 0, 0, 0);
-            end.setHours(0, 0, 0, 0);
+            // Validate year overlap
+            if (end < yearStart || start > yearEnd) return;
 
-            // Clamp start/end to year view to avoid huge loops for tasks spanning decades
             const safeStart = start < yearStart ? yearStart : start;
             const safeEnd = end > yearEnd ? yearEnd : end;
 
-            if (safeStart <= safeEnd) {
-                // Simple loop is much faster than eachDayOfInterval + formatting
-                const current = new Date(safeStart);
-                while (current <= safeEnd) {
-                    timestamps.add(current.getTime());
-                    current.setDate(current.getDate() + 1);
-                }
+            // Normalize to midnight
+            const current = new Date(safeStart);
+            current.setHours(0, 0, 0, 0);
+
+            const endLimit = new Date(safeEnd);
+            endLimit.setHours(0, 0, 0, 0);
+
+            while (current <= endLimit) {
+                const monthKey = current.getMonth().toString(); // 0-11
+                if (!rawMap[monthKey]) rawMap[monthKey] = new Map();
+
+                const dayTs = current.getTime();
+                const dayList = rawMap[monthKey].get(dayTs) || [];
+                dayList.push(task);
+                rawMap[monthKey].set(dayTs, dayList);
+
+                current.setDate(current.getDate() + 1);
             }
         });
-        return timestamps;
-    }, [tasks, yearStart, yearEnd]); // Re-calc if tasks or year changes
 
-    const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
+        // 2. Convert to Status Map and Compare with Prev
+        const finalData: Record<string, MonthData> = {};
+        const prevData = prevDataRef.current;
+        let hasChanges = false;
+
+        // Iterate 0-11 months
+        for (let i = 0; i < 12; i++) {
+            const key = i.toString();
+            const dayMap = rawMap[key];
+
+            if (!dayMap) {
+                // No tasks for this month
+                if (prevData[key] && prevData[key].size > 0) {
+                    finalData[key] = new Map(); // Changed to empty
+                    hasChanges = true;
+                } else {
+                    finalData[key] = prevData[key] || new Map(); // Keep generic empty ref
+                }
+                continue;
+            }
+
+            // Resolve statuses
+            const newMonthData: MonthData = new Map();
+            let isMonthDifferent = false;
+            const oldMonthData = prevData[key];
+
+            dayMap.forEach((taskList, dayTs) => {
+                const status = resolveDayStatus(taskList);
+                const count = taskList.length;
+                newMonthData.set(dayTs, { status, count });
+
+                // Check diff
+                if (!oldMonthData || !oldMonthData.has(dayTs)) {
+                    isMonthDifferent = true;
+                } else {
+                    const old = oldMonthData.get(dayTs)!;
+                    if (old.status !== status || old.count !== count) isMonthDifferent = true;
+                }
+            });
+
+            // Also check if keys were removed
+            if (oldMonthData && oldMonthData.size !== newMonthData.size) isMonthDifferent = true;
+
+            if (isMonthDifferent) {
+                finalData[key] = newMonthData;
+                hasChanges = true;
+            } else {
+                finalData[key] = oldMonthData; // REUSE REFERENCE!
+            }
+        }
+
+        if (hasChanges) {
+            prevDataRef.current = finalData;
+            return finalData;
+        }
+        return prevData; // Return exact same object if nothing changed
+    }, [tasks, year]);
+}
+
+export function YearView({ date, onNavigate, onViewChange, tasks }: YearViewProps) {
+    const currentYear = date.getFullYear();
+    const months = useMemo(() => eachMonthOfInterval({
+        start: startOfYear(date),
+        end: endOfYear(date)
+    }), [currentYear]); // Stable dependency only on year
+
+    // "Smart Memoization" - only updates months that actually changed
+    const yearData = useYearData(tasks, currentYear);
 
     return (
         <div className="flex flex-col h-full bg-surface">
@@ -67,12 +204,12 @@ export function YearView({ date, onNavigate, onViewChange, tasks }: YearViewProp
 
             {/* Grid */}
             <div className="flex-1 overflow-y-auto p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-10">
+                <div className="flex flex-col min-h-full gap-8 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 content-between">
                     {months.map(month => (
                         <MonthGrid
                             key={month.toISOString()}
                             month={month}
-                            busyDates={busyDates}
+                            data={yearData[month.getMonth().toString()]}
                             onNavigate={onNavigate}
                             onViewChange={onViewChange}
                         />
@@ -86,24 +223,33 @@ export function YearView({ date, onNavigate, onViewChange, tasks }: YearViewProp
 // Optimization: Memoize MonthGrid to prevent unnecessary re-renders of the entire year
 const MonthGrid = memo(function MonthGrid({
     month,
-    busyDates,
+    data,
     onNavigate,
     onViewChange
 }: {
     month: Date;
-    busyDates: Set<number>;
+    data: MonthData | undefined; // Now receives granular slice
     onNavigate: (date: Date) => void;
     onViewChange: (view: 'month' | 'week' | 'day') => void;
 }) {
     const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     const monthStartDate = startOfMonth(month);
-    // Always start week on Sunday for consistency
     const startDate = startOfWeek(monthStartDate);
     const endDate = endOfWeek(endOfMonth(month));
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
+    const getStatusColor = (status: DayStatus) => {
+        switch (status) {
+            case 'critical': return 'bg-danger text-white';
+            case 'milestone': return 'bg-text text-surface'; // Invert for milestone
+            case 'completed': return 'bg-success text-white';
+            case 'normal': return 'bg-brand text-text-inverse';
+            default: return 'text-text';
+        }
+    };
+
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0">
             <button
                 onClick={() => {
                     onNavigate(month);
@@ -126,41 +272,39 @@ const MonthGrid = memo(function MonthGrid({
             <div className="grid grid-cols-7 gap-y-2 gap-x-1" role="grid">
                 {days.map(day => {
                     const isCurrentMonth = isSameMonth(day, month);
-                    const isCurrentDay = isToday(day);
-                    // Optimize: utilize timestamp check directly
-                    const hasTask = isCurrentMonth && busyDates.has(day.getTime());
 
                     if (!isCurrentMonth) {
                         return <div key={day.toISOString()} className="h-6" aria-hidden="true" />;
                     }
 
+                    const isCurrentDay = isToday(day);
+                    const dayInfo = data ? data.get(day.getTime()) : undefined;
+                    const hasTask = !!dayInfo;
+                    const statusClass = dayInfo ? getStatusColor(dayInfo.status) : '';
+
                     return (
                         <button
                             key={day.toISOString()}
                             className={`
-                                relative h-6 w-full flex items-center justify-center text-xs rounded-full cursor-pointer hover:bg-surface-alt transition-colors focus:ring-2 focus:ring-brand focus:outline-none
-                                ${isCurrentDay ? 'bg-brand text-white font-bold' : 'text-text'}
+                                relative h-6 w-full flex items-center justify-center text-xs rounded-full cursor-pointer transition-all focus:ring-2 focus:ring-brand focus:outline-none
+                                ${isCurrentDay && !hasTask ? 'bg-text text-surface font-bold ring-1 ring-text' : ''}
+                                ${hasTask ? `${statusClass} font-bold hover:brightness-110 shadow-sm` : 'text-text-muted hover:bg-surface-alt'}
                             `}
                             onClick={() => {
                                 onNavigate(day);
                                 onViewChange('day');
                             }}
-                            aria-label={`${format(day, 'MMMM do')}${hasTask ? ', has tasks' : ''}${isCurrentDay ? ', Today' : ''}`}
+                            title={hasTask ? `${dayInfo?.count} tasks (${dayInfo?.status})` : undefined}
                         >
                             {format(day, 'd')}
-                            {hasTask && !isCurrentDay && (
-                                <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-text-muted/60" />
-                            )}
                         </button>
                     );
                 })}
             </div>
         </div>
     );
-}, (prev: { month: Date; busyDates: Set<number> }, next: { month: Date; busyDates: Set<number> }) => {
-    // Custom comparison for performance: rarely need to re-render unless month changes or busy dates *for this month* change
-    // For simplicity and safety, we default to shallow comparison (which React.memo does by default).
-    // The `busyDates` set ref change will trigger re-render of all, which is correct behaviors when tasks change.
+}, (prev, next) => {
+    // Check strict equality of data reference (enabled by smart memoization upstream)
     return prev.month.getTime() === next.month.getTime() &&
-        prev.busyDates === next.busyDates;
+        prev.data === next.data;
 });
