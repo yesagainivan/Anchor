@@ -15,9 +15,22 @@ fn schedule(request: ScheduleRequest) -> Result<Vec<ScheduledTask>, String> {
     calculate_backwards_schedule(request).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn test_notification(app: tauri::AppHandle) -> Result<String, String> {
+    use tauri_plugin_notification::NotificationExt;
+    app.notification()
+        .builder()
+        .title("Rust Test")
+        .body("This is a test from Rust backend")
+        .show()
+        .map_err(|e| e.to_string())?;
+    Ok("Notification sent from Rust".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_desktop_underlay::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -78,6 +91,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             schedule,
+            test_notification,
             project::create_project,
             project::load_project,
             project::save_project,

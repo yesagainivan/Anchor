@@ -27,4 +27,5 @@ thiserror = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
 window-vibrancy = "0.7.1"
 tauri-plugin-desktop-underlay = "0.2.0"
+tauri-plugin-notification = "2"
 

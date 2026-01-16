@@ -77,6 +77,12 @@ Connect the simulated desktop widget to real backend data.
 
 ## 🔥 High Priority (Next)
 
+### Minute-level Granularity
+Allow scheduling tasks down to the minute, not just the day.
+- [ ] Update data model (chrono)
+- [ ] UI for time selection
+- [ ] Notification triggers for exact times
+
 ### Task Notes System
 Markdown-supported notes for individual tasks.
 - [x] Add `notes` field to backend

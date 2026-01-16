@@ -1,10 +1,11 @@
 {
-    "identifier": "widget-capability",
-    "description": "Capabilities for the widget window",
-    "windows": [
-        "widget"
-    ],
-    "permissions": [
-        "core:window:allow-start-dragging"
-    ]
+  "identifier": "widget-capability",
+  "description": "Capabilities for the widget window",
+  "windows": [
+    "widget"
+  ],
+  "permissions": [
+    "core:window:allow-start-dragging",
+    "notification:default"
+  ]
 }

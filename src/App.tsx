@@ -10,6 +10,9 @@ import { useProject } from "./hooks/useProject";
 import { useConfig } from "./hooks/useConfig";
 import "./App.css";
 
+
+import { useNotificationScheduler } from './hooks/useNotificationScheduler';
+
 import { TaskDetailsView } from "./components/TaskDetailsView";
 
 function App() {
@@ -29,6 +32,9 @@ function App() {
     toggleAnchor,
     anchorTaskIds
   } = useProject(activeProjectId);
+
+  // Initialize notification scheduler
+  useNotificationScheduler(scheduledTasks);
 
   const [viewMode, setViewMode] = useState<'timeline' | 'calendar' | 'details'>('timeline');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -219,6 +225,7 @@ function App() {
             >
               WIDGET
             </button>
+
             <ThemeToggle theme={theme as Theme} onThemeChange={(t) => setTheme(t)} />
           </div>
         </header>
