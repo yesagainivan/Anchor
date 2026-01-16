@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 export type MyAppTheme = 'light' | 'dark' | 'system';
 
@@ -23,6 +24,14 @@ export function useConfig() {
             }
         };
         load();
+
+        const unlistenPromise = listen<AppConfig>('config-changed', (event) => {
+            setConfig(event.payload);
+        });
+
+        return () => {
+            unlistenPromise.then(unlisten => unlisten());
+        };
     }, []);
 
     const updateTheme = async (theme: MyAppTheme) => {

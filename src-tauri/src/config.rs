@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
@@ -41,5 +41,10 @@ pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
     let path = get_config_path(&app)?;
     let json = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
     fs::write(path, json).map_err(|e| e.to_string())?;
+
+    // Emit event so other windows (like widget) know about the change
+    app.emit("config-changed", &config)
+        .map_err(|e| e.to_string())?;
+
     Ok(())
 }

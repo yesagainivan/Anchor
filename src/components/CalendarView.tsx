@@ -197,9 +197,10 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
             classes.push('bg-brand border-brand');
         }
 
-        if (task.is_critical && !task.completed) {
-            classes.push('ring-2 ring-danger ring-offset-1 ring-offset-surface');
-        }
+        // this is ugly, will fix later with a better solution TODO
+        // if (task.is_critical && !task.completed) {
+        //     classes.push('ring-2 ring-danger ring-offset-1 ring-offset-surface');
+        // }
 
         return {
             className: classes.join(' '),

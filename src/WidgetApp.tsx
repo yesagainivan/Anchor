@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { differenceInDays, parseISO } from "date-fns";
 import { ChevronLeftIcon, ChevronRightIcon, DiamondIcon } from "./components/icons";
 import { MiniCalendar } from "./components/MiniCalendar";
+import { useConfig } from "./hooks/useConfig";
 
 
 interface WidgetTask {
@@ -36,6 +37,7 @@ interface WidgetInfo {
 function WidgetApp() {
     const [info, setInfo] = useState<WidgetInfo | null>(null);
     const [activeTab, setActiveTab] = useState<'focus' | 'list' | 'calendar'>('focus');
+    const { theme, loaded: configLoaded } = useConfig();
 
     const fetchProject = async (projectId?: string) => {
         try {
@@ -73,15 +75,7 @@ function WidgetApp() {
         const handleFocus = () => fetchProject();
         window.addEventListener("focus", handleFocus);
 
-        // Sync theme with main app
-        const isDark = localStorage.getItem('anchor-theme') === 'dark' ||
-            (!localStorage.getItem('anchor-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
 
         // Auto-refresh every 10 minutes to ensure "days left" is accurate (e.g. crossing midnight)
         const intervalId = setInterval(fetchProject, 60000 * 10);
@@ -92,6 +86,24 @@ function WidgetApp() {
             clearInterval(intervalId);
         };
     }, []);
+
+    // Apply theme
+    useEffect(() => {
+        if (!configLoaded) return;
+
+        const root = document.documentElement;
+        const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        root.classList.toggle('dark', isDark);
+
+        if (theme === 'system') {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const handler = (e: MediaQueryListEvent) => {
+                root.classList.toggle('dark', e.matches);
+            };
+            mediaQuery.addEventListener('change', handler);
+            return () => mediaQuery.removeEventListener('change', handler);
+        }
+    }, [theme, configLoaded]);
 
     const getDaysText = () => {
         if (!info || !info.next_deadline) return "No Deadline Set";
