@@ -55,9 +55,6 @@ export function TaskDetailsView({
             ...taskDef,
             name: editName,
             notes: editNotes.trim() || undefined,
-            // Keep existing milestone status or allow toggle? 
-            // Let's assume for now we don't edit milestone status here, or we add a toggle.
-            // Adding toggle:
             is_milestone: isMilestoneEditing
         });
         setIsEditing(false);

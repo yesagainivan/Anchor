@@ -9,6 +9,17 @@ export const useNotificationScheduler = (
     const { notify, permissionGranted } = useNotifications();
 
     useEffect(() => {
+        // Cleanup old notification keys on mount
+        const today = format(new Date(), 'yyyy-MM-dd');
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key?.startsWith('anchor_notified_') && !key.endsWith(today)) {
+                localStorage.removeItem(key);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
         if (!scheduledTasks || !permissionGranted) return;
 
         const checkAndNotify = () => {
@@ -39,8 +50,6 @@ export const useNotificationScheduler = (
                     task.start_date <= today &&
                     task.end_date >= today
                 ) {
-                    // Different key for critical reminder to allow distinct notifications?
-                    // For now, let's treat "daily critical reminder" as the same "once per day" slot.
                     notify(
                         '🔥 Critical Task',
                         `"${task.name}" is critical and active. Any delay will push the deadline!`
@@ -53,8 +62,11 @@ export const useNotificationScheduler = (
         // Run immediately on load/change
         checkAndNotify();
 
-        // Optional: Setup an interval to check every hour? 
-        // For now, checking on data change/mount is sufficient for a local app.
+        // Check periodically (every hour) to handle overnight sessions
+        const intervalId = setInterval(checkAndNotify, 60 * 60 * 1000);
+
+        return () => clearInterval(intervalId);
 
     }, [scheduledTasks, permissionGranted, notify]);
 };
+
