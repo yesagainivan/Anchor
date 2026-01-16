@@ -41,6 +41,7 @@ function App() {
 
   const [viewMode, setViewMode] = useState<'timeline' | 'calendar' | 'details'>('timeline');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [startInEditMode, setStartInEditMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Apply theme to DOM
@@ -109,9 +110,14 @@ function App() {
     editTask(updatedTask);
   }, [project, editTask]);
 
-  const handleOpenDetails = (taskId: string) => {
+  const handleOpenDetails = (taskId: string, editMode: boolean = false) => {
     setSelectedTaskId(taskId);
+    setStartInEditMode(editMode);
     setViewMode('details');
+    // Auto-close sidebar on smaller screens (when it's an overlay)
+    if (window.innerWidth <= 768) {
+      setSidebarOpen(false);
+    }
   };
 
   if (!configLoaded) {
@@ -185,7 +191,7 @@ function App() {
       {/* Sidebar overlay for mobile */}
       {sidebarOpen && (
         <div
-          className="sidebar-overlay lg:hidden"
+          className="sidebar-overlay md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -197,7 +203,7 @@ function App() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className={`p-2 rounded-lg hover:bg-surface-alt text-text-muted ${sidebarOpen ? 'lg:hidden' : ''}`}
+              className={`p-2 rounded-lg hover:bg-surface-alt text-text-muted ${sidebarOpen ? 'md:hidden' : ''}`}
             >
               <MenuIcon />
             </button>
@@ -295,7 +301,9 @@ function App() {
             />
           ) : (
             <TaskDetailsView
+              key={selectedTaskId} // Reset component state when switching tasks
               taskId={selectedTaskId}
+              initialEditMode={startInEditMode}
               tasks={tasks}
               schedule={scheduledTasks}
               onUpdateTask={editTask}

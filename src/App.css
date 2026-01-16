@@ -159,6 +159,9 @@
   flex-direction: column;
   justify-content: center;
   align-items: stretch;
+
+  /* remove scrollbar */
+  scrollbar-width: none;
 }
 
 /* When content exceeds container, align to top */
@@ -182,7 +185,7 @@
 
 /* Mobile responsive */
 /* @media (max-width: 800px) { */
-@media (max-width: 1023px) {
+@media (max-width: 768px) {
   .app-sidebar {
     position: fixed;
     left: 0;

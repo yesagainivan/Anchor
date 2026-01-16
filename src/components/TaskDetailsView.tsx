@@ -13,6 +13,7 @@ interface TaskDetailsViewProps {
     onUpdateTask: (task: Task) => void;
     onDeleteTask: (taskId: string) => void;
     onClose: () => void;
+    initialEditMode?: boolean;
 }
 
 export function TaskDetailsView({
@@ -21,9 +22,10 @@ export function TaskDetailsView({
     schedule,
     onUpdateTask,
     onDeleteTask,
-    onClose
+    onClose,
+    initialEditMode = false
 }: TaskDetailsViewProps) {
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(initialEditMode);
     const [editName, setEditName] = useState('');
     const [editNotes, setEditNotes] = useState('');
     const [isMilestoneEditing, setIsMilestoneEditing] = useState(false);

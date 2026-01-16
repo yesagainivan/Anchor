@@ -13,7 +13,7 @@ interface TaskFormProps {
     onToggleAnchor: (taskId: string) => void;
     onAnchorDateChange: (date: string) => void;
     onEditTask: (task: Task) => void;
-    onOpenDetails: (taskId: string) => void;
+    onOpenDetails: (taskId: string, editMode?: boolean) => void;
 }
 
 export function TaskForm({
@@ -75,7 +75,7 @@ export function TaskForm({
 
     const handleStartEdit = (task: Task) => {
         // Redirect to details view instead of inline edit
-        onOpenDetails(task.id);
+        onOpenDetails(task.id, true);
     };
 
     const handleCancelEdit = () => {
