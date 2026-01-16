@@ -187,7 +187,7 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
 
     const eventPropGetter = (event: CalendarEvent) => {
         const task = event.resource;
-        const classes = ['cursor-move text-white shadow-sm transition-all'];
+        const classes = ['cursor-move text-white shadow-sm !transition-all !duration-200 !ease-in-out hover:!-translate-y-px hover:!shadow-md hover:z-50 relative'];
 
         if (task.completed) {
             classes.push('bg-success border-success opacity-80 decoration-slice line-through');
