@@ -86,9 +86,10 @@ Gorgeous frosted look with custom title bar using same plugins as widget.
 
 ### Widget UX/UI Improvements
 Polish and refine the desktop widget experience.
-- [ ] Improved animations and transitions
-- [ ] Better visual hierarchy and typography
-- [ ] Micro-interactions (hover states, loading states)
+- [x] Project switching in widget (Left/Right arrows)
+- [x] Visual task progress (Circular ring + accurate % timer)
+- [x] "Focus" tab overhaul (Circular progress, better hierarchy)
+- [x] Animations & Micro-interactions (Staggered list, hover states)
 - [ ] Compact/refined layout options
 
 ---
