@@ -1,16 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Project, ScheduledTask, Task } from "../types";
-
-// Debounce helper
-function useDebounce<T>(value: T, delay: number): T {
-    const [debouncedValue, setDebouncedValue] = useState<T>(value);
-    useEffect(() => {
-        const handler = setTimeout(() => setDebouncedValue(value), delay);
-        return () => clearTimeout(handler);
-    }, [value, delay]);
-    return debouncedValue;
-}
+import { useDebounce } from "./useDebounce";
 
 export function useProject(projectId: string | null) {
     const [project, setProject] = useState<Project | null>(null);

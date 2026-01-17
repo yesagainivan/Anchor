@@ -31,12 +31,12 @@ If you miss a start date, the "Ripple Effect" immediately shows how your buffer 
 ## Features
 
 -   **⚓ Anchor System**: Pin tasks to specific dates. Everything else flows around them.
--   **🌊 Ripple Effect Scheduling**: Drag any task, and watch the entire timeline automatically recalculate based on dependencies.
+-   **🌊 Ripple Effect Scheduling**: Update any anchor or drag tasks in the **Calendar**, and watch the timeline automatically recalculate.
 -   **🔥 Critical Path**: Instantly visualize which tasks are critical. Delaying these *will* delay the project.
 -   **📅 Dual Views**:
     -   **Timeline**: A fluid Gantt-style view for high-level planning.
-    -   **Calendar**: A familiar monthly view for daily execution.
--   **🛡️ Buffer Zones**: Visual "Safety Zones" show exactly how much slack you have before a task becomes critical.
+    -   **Calendar**: A familiar monthly view for dragging and rescheduling.
+-   **🛡️ Project Buffer**: Visual "Safety Zone" shows exactly how much slack you have before you *must* start the project.
 -   **💎 Milestones**: Visual celebration of key dates with diamond markers on the timeline.
 -   **📝 Task Notes**: Add rich Markdown notes to any task to keep details contextually relevant.
 -   **🌚 Dark Mode**: Fully themed UI that respects your system preferences.

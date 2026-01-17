@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Task, ScheduledTask } from '../types';
 import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, BackIcon, EditIcon, DiamondIcon, TimelineIcon } from './icons';
 import { Checkbox } from './Checkbox';
 import { format, parseISO } from 'date-fns';
 import { SmartDurationInput } from './ui/SmartDurationInput';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface TaskDetailsViewProps {
     taskId: string | null;
@@ -38,15 +39,52 @@ export function TaskDetailsView({
     // Autosave State
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const [isDirty, setIsDirty] = useState(false);
-    const saveTimeoutRef = useRef<number | null>(null);
+    const prevTaskIdRef = useRef<string | null>(null);
+    const saveStatusTimeoutRef = useRef<number | null>(null);
 
     // Find the task data
     const taskDef = tasks.find(t => t.id === taskId);
     const taskSched = schedule.find(t => t.id === taskId);
 
-    // Initial Load / Reset
+    // Refs to track previous state for save-on-switch
+    const prevFormDataRef = useRef<typeof formData | null>(null);
+    const prevTaskDefRef = useRef<Task | null>(null);
+
+    // Initial Load / Reset - Only when switching to a different task
+    // IMPORTANT: Save any pending dirty changes before switching
     useEffect(() => {
-        if (taskDef) {
+        const taskIdChanged = prevTaskIdRef.current !== taskId;
+
+        // Save dirty changes from PREVIOUS task before switching
+        if (taskIdChanged && isDirty && prevTaskDefRef.current && prevFormDataRef.current) {
+            const prevFormData = prevFormDataRef.current;
+            const prevTask = prevTaskDefRef.current;
+
+            let durationMinutes: number | undefined = undefined;
+            let durationDays = 0;
+            if (prevFormData.editDurationUnit === 'days') {
+                durationDays = prevFormData.editDuration;
+            } else if (prevFormData.editDurationUnit === 'hours') {
+                durationMinutes = prevFormData.editDuration * 60;
+            } else {
+                durationMinutes = prevFormData.editDuration;
+            }
+
+            onUpdateTask({
+                ...prevTask,
+                name: prevFormData.editName,
+                notes: prevFormData.editNotes.trim() || undefined,
+                is_milestone: prevFormData.isMilestoneEditing,
+                duration_days: durationDays,
+                duration_minutes: durationMinutes,
+                dependencies: prevFormData.editDependencies
+            });
+        }
+
+        prevTaskIdRef.current = taskId;
+
+        // Reset form state for new task
+        if (taskDef && taskIdChanged) {
             setEditName(taskDef.name);
             setEditNotes(taskDef.notes || '');
             setIsMilestoneEditing(taskDef.is_milestone || false);
@@ -70,80 +108,134 @@ export function TaskDetailsView({
             setEditDependencies(taskDef.dependencies || []);
             setIsDirty(false);
             setSaveStatus('idle');
+            setIsEditing(initialEditMode);
         }
-    }, [taskDef, isEditing]); // Reset when entering edit mode or task changes
 
-    // Save Function
-    const handleSave = useCallback(() => {
-        if (!taskDef) return;
+        // Update refs for next switch
+        prevTaskDefRef.current = taskDef || null;
+    }, [taskId, taskDef, initialEditMode, isDirty, onUpdateTask]);
+
+    // === DEBOUNCED AUTOSAVE PATTERN ===
+    // Create a stable form data object for debouncing
+    const formData = useMemo(() => ({
+        editName,
+        editNotes,
+        isMilestoneEditing,
+        editDuration,
+        editDurationUnit,
+        editDependencies
+    }), [editName, editNotes, isMilestoneEditing, editDuration, editDurationUnit, editDependencies]);
+
+    // Debounce the form data - save only triggers after user stops typing for 1.5s
+    const debouncedFormData = useDebounce(formData, 1500);
+
+    // Helper to build task from form data
+    const buildTaskFromFormData = (data: typeof formData): Task | null => {
+        if (!taskDef) return null;
 
         let durationMinutes: number | undefined = undefined;
         let durationDays = 0;
 
-        if (editDurationUnit === 'days') {
-            durationDays = editDuration;
-        } else if (editDurationUnit === 'hours') {
-            durationMinutes = editDuration * 60;
+        if (data.editDurationUnit === 'days') {
+            durationDays = data.editDuration;
+        } else if (data.editDurationUnit === 'hours') {
+            durationMinutes = data.editDuration * 60;
         } else {
-            durationMinutes = editDuration;
+            durationMinutes = data.editDuration;
         }
 
-        setSaveStatus('saving');
-
-        // Simulate a small delay for visual feedback if instant
-        // In a real async backend, we would await the promise
-        onUpdateTask({
+        return {
             ...taskDef,
-            name: editName,
-            notes: editNotes.trim() || undefined,
-            is_milestone: isMilestoneEditing,
+            name: data.editName,
+            notes: data.editNotes.trim() || undefined,
+            is_milestone: data.isMilestoneEditing,
             duration_days: durationDays,
             duration_minutes: durationMinutes,
-            dependencies: editDependencies
-        });
+            dependencies: data.editDependencies
+        };
+    };
 
-        setTimeout(() => {
-            setSaveStatus('saved');
-            setIsDirty(false);
-            setTimeout(() => setSaveStatus('idle'), 2000); // Hide 'saved' after 2s
-        }, 500);
-    }, [taskDef, editName, editNotes, isMilestoneEditing, editDuration, editDurationUnit, editDependencies, onUpdateTask]);
-
-    // Autosave Effect
+    // Autosave Effect - reacts to debounced form data changes
     useEffect(() => {
-        // Skip initial mount or flush
+        // Only save if editing AND dirty
         if (!isEditing || !isDirty) return;
 
-        // Clear existing timer
-        if (saveTimeoutRef.current) {
-            window.clearTimeout(saveTimeoutRef.current);
+        const updatedTask = buildTaskFromFormData(debouncedFormData);
+        if (!updatedTask) return;
+
+        setSaveStatus('saving');
+        onUpdateTask(updatedTask);
+
+        // Clear any existing timeout
+        if (saveStatusTimeoutRef.current) {
+            window.clearTimeout(saveStatusTimeoutRef.current);
         }
 
-        setSaveStatus('saving'); // Indicate pending save (or 'waiting to save')
+        // Show 'saved' after a brief delay for visual feedback
+        saveStatusTimeoutRef.current = window.setTimeout(() => {
+            setSaveStatus('saved');
+            setIsDirty(false);
 
-        // Set new timer
-        saveTimeoutRef.current = window.setTimeout(() => {
-            handleSave();
-        }, 2000);
+            // Hide indicator after 2s
+            saveStatusTimeoutRef.current = window.setTimeout(() => {
+                setSaveStatus('idle');
+            }, 2000);
+        }, 200);
 
         return () => {
-            if (saveTimeoutRef.current) {
-                window.clearTimeout(saveTimeoutRef.current);
+            if (saveStatusTimeoutRef.current) {
+                window.clearTimeout(saveStatusTimeoutRef.current);
             }
         };
-    }, [editName, editNotes, isMilestoneEditing, editDuration, editDurationUnit, editDependencies, isEditing, isDirty, handleSave]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedFormData]); // Only react to debounced data changes
 
-    // Handle Closing (Save on Unmount/Close)
+    // Manual save function (for Done button, closing, and Cmd+S)
+    const handleManualSave = () => {
+        const updatedTask = buildTaskFromFormData(formData);
+        if (updatedTask && isDirty) {
+            setSaveStatus('saving');
+            onUpdateTask(updatedTask);
+            setIsDirty(false);
+
+            // Brief visual feedback
+            setTimeout(() => {
+                setSaveStatus('saved');
+                setTimeout(() => setSaveStatus('idle'), 2000);
+            }, 200);
+        }
+    };
+
+    // Track formData for save-on-switch
     useEffect(() => {
-        return () => {
-            // If component unmounts and is dirty, save immediately
-            if (isDirty && isEditing) {
-                handleSave();
+        prevFormDataRef.current = formData;
+    }, [formData]);
+
+    // Keyboard shortcuts: Cmd+S to save, Escape to exit edit mode
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Cmd+S / Ctrl+S: immediate save
+            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                e.preventDefault();
+                if (isEditing && isDirty) {
+                    handleManualSave();
+                }
+            }
+
+            // Escape: save and exit edit mode (like Done button)
+            if (e.key === 'Escape' && isEditing) {
+                e.preventDefault();
+                handleManualSave();
+                setIsEditing(false);
             }
         };
-    }, [isDirty, isEditing, handleSave]);
 
-    // Change handlers wrapper to set dirty
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEditing, isDirty, formData]); // Include formData to get latest values
+
+    // Change handler wrapper to set dirty flag
     const handleValueChange = <T,>(setter: (val: T) => void, val: T) => {
         setter(val);
         setIsDirty(true);
@@ -160,8 +252,8 @@ export function TaskDetailsView({
         );
     }
 
-    const handleManualSaveAndClose = () => {
-        handleSave();
+    const handleDoneEditing = () => {
+        handleManualSave();
         setIsEditing(false);
     };
 
@@ -174,7 +266,7 @@ export function TaskDetailsView({
 
     const handleCloseInternal = () => {
         if (isDirty && isEditing) {
-            handleSave();
+            handleManualSave();
         }
         onClose();
     };
@@ -294,7 +386,7 @@ export function TaskDetailsView({
                         {isEditing && (
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={handleManualSaveAndClose}
+                                    onClick={handleDoneEditing}
                                     className="px-3 py-1.5 text-sm font-medium text-text-muted hover:text-text hover:bg-surface-alt rounded transition-colors"
                                 >
                                     Done

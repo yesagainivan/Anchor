@@ -126,7 +126,12 @@ pub fn calculate_backwards_schedule(
         .map(|(id, consumers)| (id.clone(), consumers.len()))
         .collect();
 
-    let mut queue: Vec<String> = request.anchors.keys().cloned().collect();
+    let mut queue: Vec<String> = request
+        .tasks
+        .iter()
+        .filter(|t| !dependents.contains_key(&t.id))
+        .map(|t| t.id.clone())
+        .collect();
     let mut visited_backward = HashSet::new();
 
     // We need to capture the results of the backward pass
@@ -145,7 +150,7 @@ pub fn calculate_backwards_schedule(
         // Late Finish is already set either by Anchor or by successors
         let lf = *late_finish
             .get(&task_id)
-            .ok_or_else(|| ScheduleError::NoEndDateComputed(task_id.clone()))?;
+            .ok_or_else(|| ScheduleError::NoEndDateComputed(task.name.clone()))?;
 
         // Calculate duration logic
         let duration = if let Some(mins) = task.duration_minutes {
@@ -410,6 +415,67 @@ mod tests {
                 assert!(msg.contains("Task B"));
             }
             _ => panic!("Expected NoEndDateComputed error"),
+        }
+    }
+
+    #[test]
+    fn test_anchor_with_consumer_constraint() {
+        // A -> B.
+        // Anchor A at T=20 (Late).
+        // Anchor B at T=10 (Early).
+        // Duration 1 each (in days, so 24h).
+        // A is the provider. B is the consumer.
+        // A must finish by:
+        //  1. Its own anchor (20)
+        //  2. B's start. B ends at 10. Start = 9. So A must end by 9.
+        // Expected: A.end_date = 2026-01-09...
+
+        let request = ScheduleRequest {
+            tasks: vec![
+                Task {
+                    id: "a".into(),
+                    name: "Task A".into(),
+                    duration_days: 1,
+                    duration_minutes: None,
+                    dependencies: vec![],
+                    completed: false,
+                    notes: None,
+                    is_milestone: false,
+                },
+                Task {
+                    id: "b".into(),
+                    name: "Task B".into(),
+                    duration_days: 1,
+                    duration_minutes: None,
+                    dependencies: vec!["a".into()],
+                    completed: false,
+                    notes: None,
+                    is_milestone: false,
+                },
+            ],
+            anchors: [
+                ("a".into(), "2026-01-20T00:00:00".into()),
+                ("b".into(), "2026-01-10T00:00:00".into()),
+            ]
+            .into(),
+        };
+
+        // Run multiple times to catch potential hashmap randomness
+        for _ in 0..20 {
+            let result = calculate_backwards_schedule(ScheduleRequest {
+                tasks: request.tasks.clone(),
+                anchors: request.anchors.clone(),
+            })
+            .expect("Schedule failed");
+
+            let task_a = result.iter().find(|t| t.id == "a").unwrap();
+
+            // Check if it respected the tighter constraint
+            assert!(
+                task_a.end_date.contains("2026-01-09"),
+                "Task A end_date was {}, expected 2026-01-09",
+                task_a.end_date
+            );
         }
     }
 }
