@@ -1,7 +1,7 @@
 # Anchor
 > **Backwards scheduling from your deadline.**
 
-![Anchor Banner](https://placehold.co/1200x400/0f172a/38bdf8?text=ANCHOR)
+![Anchor Banner](./assets/banner.webp)
 
 Anchor is a retro-planning application designed to tell you *when to start*, not just when to finish. Unlike traditional calendars that push tasks forward, Anchor starts from your "Dead-Drop" deadline and calculates backwards, revealing the true critical path and available buffer time.
 
