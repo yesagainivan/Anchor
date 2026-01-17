@@ -27,6 +27,12 @@ fn test_notification(app: tauri::AppHandle) -> Result<String, String> {
     Ok("Notification sent from Rust".to_string())
 }
 
+#[tauri::command]
+fn show_main_window(window: tauri::Window) {
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -110,6 +116,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             schedule,
             test_notification,
+            show_main_window,
             project::create_project,
             project::load_project,
             project::save_project,

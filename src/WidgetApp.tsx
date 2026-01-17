@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 import { differenceInDays, differenceInHours, parseISO } from "date-fns";
 import { ChevronLeftIcon, ChevronRightIcon, DiamondIcon } from "./components/icons";
 import { MiniCalendar } from "./components/MiniCalendar";
@@ -38,15 +38,25 @@ interface WidgetInfo {
 
 function WidgetApp() {
     const [info, setInfo] = useState<WidgetInfo | null>(null);
+    const currentProjectIdRef = useRef<string | null>(null);
     const [liveProgress, setLiveProgress] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'focus' | 'list' | 'calendar'>('focus');
     const { theme, loaded: configLoaded } = useConfig();
 
     const fetchProject = async (projectId?: string) => {
         try {
-            const args = projectId ? { projectId } : undefined;
+            // If explicit ID provided, use it. Otherwise use the current one we are viewing.
+            // If neither, undefined will let backend pick the default active project.
+            const targetId = projectId || currentProjectIdRef.current || undefined;
+            const args = targetId ? { projectId: targetId } : undefined;
+
             const data = await invoke<WidgetInfo | null>("get_widget_info", args);
             setInfo(data);
+
+            if (data) {
+                currentProjectIdRef.current = data.project_id;
+            }
+
             // Initialize live progress immediately
             if (data?.active_task) {
                 if (data.active_task.completed) {
@@ -273,11 +283,21 @@ function WidgetApp() {
 
                         {/* Current Task */}
                         {info.current_focus && (
-                            <div className="mt-4 text-center max-w-[90%]">
+                            <div
+                                className={`mt-4 text-center max-w-[90%] ${info.active_task ? 'cursor-pointer hover:scale-105 transition-transform active:scale-95 group' : ''}`}
+                                onClick={() => {
+                                    if (info.active_task) {
+                                        emit('open-task-details', {
+                                            taskId: info.active_task.id,
+                                            projectId: info.project_id
+                                        });
+                                    }
+                                }}
+                            >
                                 <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">
                                     Current Focus
                                 </div>
-                                <div className="text-sm font-medium text-text/90 truncate">
+                                <div className={`text-sm font-medium truncate ${info.active_task ? 'text-brand underline decoration-brand/50 underline-offset-4 group-hover:decoration-brand' : 'text-text/90'}`}>
                                     {info.current_focus}
                                 </div>
                             </div>
@@ -298,7 +318,16 @@ function WidgetApp() {
                                 <div className="absolute left-[5px] top-2 bottom-2 w-0.5 bg-border-muted" />
 
                                 {info.upcoming_tasks.map((task) => (
-                                    <div key={task.id} className="relative mb-3 last:mb-0 pl-4 group stagger-item">
+                                    <div
+                                        key={task.id}
+                                        className="relative mb-3 last:mb-0 pl-4 group stagger-item cursor-pointer -mr-2 pr-2 py-0.5 transition-colors"
+                                        onClick={() => {
+                                            emit('open-task-details', {
+                                                taskId: task.id,
+                                                projectId: info.project_id
+                                            });
+                                        }}
+                                    >
                                         {/* Dot */}
                                         <div className={`absolute left-[-1px] top-1.5 w-3 h-3 rounded-full border-2 transition-colors flex items-center justify-center ${task.completed
                                             ? 'bg-success border-success'
@@ -314,7 +343,7 @@ function WidgetApp() {
                                         </div>
 
                                         <div className="flex flex-col">
-                                            <span className={`text-xs font-medium truncate ${task.status === 'active' ? 'text-text' : 'text-text-muted'
+                                            <span className={`text-xs font-medium truncate transition-colors ${task.status === 'active' ? 'text-text group-hover:text-brand' : 'text-text-muted group-hover:text-brand/80'
                                                 }`}>
                                                 {task.name}
                                             </span>

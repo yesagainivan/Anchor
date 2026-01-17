@@ -108,7 +108,7 @@ export function TaskDetailsView({
     return (
         <div className="h-full flex flex-col bg-surface overflow-hidden rounded-xl border border-border">
             {/* Header */}
-            <div className="p-6 border-b border-border bg-surface flex items-start justify-between gap-4">
+            <div className="p-4 border-b border-border bg-surface flex items-start justify-between gap-4">
                 <div className="flex-1 flex items-start gap-3">
                     <button
                         onClick={onClose}

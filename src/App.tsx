@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
 import { CalendarView, CalendarViewType } from "./components/CalendarView";
@@ -46,6 +48,24 @@ function App() {
   const [startInEditMode, setStartInEditMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // Deep Link Handling
+  const [pendingDeepLink, setPendingDeepLink] = useState<{ taskId: string } | null>(null);
+
+  // Handle pending deep link once project data is loaded
+  useEffect(() => {
+    if (!pendingDeepLink || !project || loading) return;
+
+    // Check if task exists in current project
+    const taskExists = project.tasks.some(t => t.id === pendingDeepLink.taskId);
+
+    if (taskExists) {
+      setSelectedTaskId(pendingDeepLink.taskId);
+      setViewMode('details');
+      setStartInEditMode(false);
+      setPendingDeepLink(null); // Clear pending state
+    }
+  }, [project, loading, pendingDeepLink]);
+
   // Calendar State
   const [calendarView, setCalendarView] = useState<CalendarViewType>('month');
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -88,6 +108,36 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
+
+  // Listen for open-task-details event from widget
+  useEffect(() => {
+    const unlisten = listen<{ taskId: string; projectId?: string }>('open-task-details', async (event) => {
+      const { taskId, projectId } = event.payload;
+
+      // Ensure window is visible using Rust command for reliability
+      try {
+        await invoke('show_main_window');
+      } catch (e) {
+        console.error("Failed to show window via Rust:", e);
+      }
+
+      // Handle Project Switching
+      if (projectId && projectId !== activeProjectId) {
+        setActiveProjectId(projectId);
+        setPendingDeepLink({ taskId }); // Queue navigation for after load
+        return;
+      }
+
+      // If already on standard project or no project specified
+      setSelectedTaskId(taskId);
+      setViewMode('details');
+      setStartInEditMode(false);
+    });
+
+    return () => {
+      unlisten.then(f => f());
+    };
+  }, [activeProjectId]); // Re-bind if activeProjectId changes
 
   const handleTaskMove = useCallback(async (taskId: string, newDate: string) => {
     // When moving a task, we now anchor JUST that task to the new date

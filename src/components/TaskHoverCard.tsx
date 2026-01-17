@@ -3,16 +3,16 @@ import { format, differenceInDays, parseISO } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import { ScheduledTask, Task } from '../types';
 import { useRef, useEffect, useState } from 'react';
-import { AlertIcon } from './icons';
+import { AlertIcon, CheckIcon } from './icons';
 
 interface TaskHoverCardProps {
     task: ScheduledTask;
     definition?: Task;
     position: { x: number; y: number } | null;
-    getTaskName: (id: string) => string;
+    getTask: (id: string) => ScheduledTask | undefined;
 }
 
-export function TaskHoverCard({ task, definition, position, getTaskName, onMouseEnter, onMouseLeave }: TaskHoverCardProps & { onMouseEnter?: () => void; onMouseLeave?: () => void }) {
+export function TaskHoverCard({ task, definition, position, getTask, onMouseEnter, onMouseLeave }: TaskHoverCardProps & { onMouseEnter?: () => void; onMouseLeave?: () => void }) {
     const cardRef = useRef<HTMLDivElement>(null);
     const [adjustedPosition, setAdjustedPosition] = useState(position);
 
@@ -134,12 +134,24 @@ export function TaskHoverCard({ task, definition, position, getTaskName, onMouse
                     <div className="text-xs border-t border-border pt-2 mt-2">
                         <span className="text-text-faint block mb-1.5 font-medium">Waiting on</span>
                         <div className="flex flex-col gap-1">
-                            {definition.dependencies.map(depId => (
-                                <div key={depId} className="flex items-center gap-1.5 text-text-muted">
-                                    <div className="w-1 h-1 rounded-full bg-border" />
-                                    <span className="truncate">{getTaskName(depId)}</span>
-                                </div>
-                            ))}
+                            {definition.dependencies.map(depId => {
+                                const depTask = getTask(depId);
+                                const isCompleted = depTask?.completed;
+                                const name = depTask?.name || depId;
+
+                                return (
+                                    <div key={depId} className="flex items-center gap-1.5 text-text-muted">
+                                        {isCompleted ? (
+                                            <div className="text-success shrink-0">
+                                                <CheckIcon className="w-3.5 h-3.5" />
+                                            </div>
+                                        ) : (
+                                            <div className="w-1 h-1 rounded-full bg-border shrink-0 ml-1 mr-0.5" />
+                                        )}
+                                        <span className={`truncate ${isCompleted ? 'text-text-muted/80' : ''}`}>{name}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

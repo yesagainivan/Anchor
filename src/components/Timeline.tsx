@@ -473,7 +473,7 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                             task={hoveredTask.task}
                             definition={definitions.find(d => d.id === hoveredTask.task.id)}
                             position={hoveredTask.position}
-                            getTaskName={(id) => tasks.find(t => t.id === id)?.name || id}
+                            getTask={(id) => tasks.find(t => t.id === id)}
                             onMouseEnter={() => {
                                 if (hoverTimeoutRef.current) {
                                     clearTimeout(hoverTimeoutRef.current);
