@@ -3,9 +3,11 @@ import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
 import { CalendarView } from "./components/CalendarView";
 import { DeadlineDisplay } from "./components/DeadlineDisplay";
-import { ThemeToggle, Theme } from "./components/ThemeToggle";
+// ThemeToggle removed - using system settings
+// import { ThemeToggle, Theme } from "./components/ThemeToggle";
 import { ProjectDashboard } from "./components/ProjectDashboard";
 import { MenuIcon, CloseIcon, TimelineIcon, CalendarIcon, BackIcon, MemoIcon } from "./components/icons";
+import { TitleBar } from "./components/TitleBar";
 import { useProject } from "./hooks/useProject";
 import { useConfig } from "./hooks/useConfig";
 import "./App.css";
@@ -17,7 +19,7 @@ import { TaskDetailsView } from "./components/TaskDetailsView";
 
 function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const { theme, setTheme, loaded: configLoaded } = useConfig();
+  const { theme, loaded: configLoaded } = useConfig();
 
   const {
     project,
@@ -128,8 +130,6 @@ function App() {
     return (
       <ProjectDashboard
         onOpenProject={setActiveProjectId}
-        theme={theme as Theme}
-        onThemeChange={(t) => setTheme(t)}
       />
     );
   }
@@ -150,172 +150,176 @@ function App() {
 
   return (
     <div className="app-shell">
-      {/* Sidebar */}
-      <aside className={`app-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-        <div className="sidebar-header">
-          <button
-            onClick={() => setActiveProjectId(null)}
-            className="p-1.5 -ml-2 mr-2 rounded-lg hover:bg-surface-alt text-text-muted"
-            title="Back to Dashboard"
-          >
-            <BackIcon />
-          </button>
-          <h1 className="text-xl font-bold text-text tracking-tight truncate flex-1">
-            {project?.name || "Anchor"}
-          </h1>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-surface-alt text-text-muted transition-colors"
-            title="Close Sidebar"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <div className="sidebar-content">
-          <DeadlineDisplay anchors={anchors} />
-          <TaskForm
-            tasks={tasks}
-            anchorTaskIds={anchorTaskIds}
-            anchorDate={anchorDate}
-            onAddTask={addTask}
-            onRemoveTask={removeTask}
-            onToggleAnchor={toggleAnchor}
-            onAnchorDateChange={setAnchorDate}
-            onEditTask={editTask}
-            onOpenDetails={handleOpenDetails}
-          />
-        </div>
-      </aside>
-
-      {/* Sidebar overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="sidebar-overlay md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <main className="app-main">
-        {/* Top bar */}
-        <header className="main-header">
-          <div className="flex items-center gap-3">
+      <TitleBar title={project?.name || "Anchor"} />
+      <div className="app-layout">
+        {/* Sidebar */}
+        <aside className={`app-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+          <div className="sidebar-header">
             <button
-              onClick={() => setSidebarOpen(true)}
-              className={`p-2 rounded-lg hover:bg-surface-alt text-text-muted ${sidebarOpen ? 'md:hidden' : ''}`}
+              onClick={() => setActiveProjectId(null)}
+              className="p-1.5 -ml-2 mr-2 rounded-lg hover:bg-surface-alt text-text-muted"
+              title="Back to Dashboard"
             >
-              <MenuIcon />
+              <BackIcon />
             </button>
-            <h2 className="text-lg font-semibold text-text">
-              {viewMode === 'timeline' ? 'Timeline' : viewMode === 'calendar' ? 'Calendar' : 'Task Details'}
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="bg-surface-alt rounded-lg p-1 flex gap-1">
-              <button
-                onClick={() => setViewMode('timeline')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'timeline'
-                  ? 'bg-surface text-text shadow-sm'
-                  : 'text-text-muted hover:text-text'
-                  }`}
-                title="Timeline View"
-              >
-                <TimelineIcon />
-              </button>
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar'
-                  ? 'bg-surface text-text shadow-sm'
-                  : 'text-text-muted hover:text-text'
-                  }`}
-                title="Calendar View"
-              >
-                <CalendarIcon />
-              </button>
-              <button
-                onClick={() => setViewMode('details')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${viewMode === 'details'
-                  ? 'bg-surface text-text shadow-sm'
-                  : 'text-text-muted hover:text-text'
-                  }`}
-                title="Task Details"
-              >
-                <MemoIcon className="w-4 h-4" />
-                {/* <span className="hidden sm:inline">Details</span> */}
-              </button>
-            </div>
+            <h1 className="text-xl font-bold text-text tracking-tight truncate flex-1">
+              {project?.name || "Anchor"}
+            </h1>
             <button
-              onClick={async () => {
-                try {
-                  const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
-                  const widget = await WebviewWindow.getByLabel('widget');
-                  if (widget) {
-                    widget.setFocus();
-                  } else {
-                    new WebviewWindow('widget', {
-                      url: 'widget.html',
-                      transparent: true,
-                      decorations: false,
-                      skipTaskbar: true,
-                      resizable: false,
-                      width: 300,
-                      height: 300
-                    });
-                  }
-                } catch (e) {
-                  console.error('Failed to launch widget:', e);
-                }
-              }}
-              className="p-2 rounded-lg hover:bg-surface-alt text-text-muted text-xs uppercase font-bold tracking-wider"
-              title="Launch Widget"
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-surface-alt text-text-muted transition-colors"
+              title="Close Sidebar"
             >
-              WIDGET
+              <CloseIcon />
             </button>
-
-            <ThemeToggle theme={theme as Theme} onThemeChange={(t) => setTheme(t)} />
           </div>
-        </header>
 
-        {error && (
-          <div className="mx-6 mt-4 bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-lg" role="alert">
-            <strong className="font-semibold">Error: </strong>
-            <span>{error}</span>
-          </div>
-        )}
-
-        <div className="main-content">
-          {viewMode === 'timeline' ? (
-            <Timeline
-              tasks={scheduledTasks}
-              definitions={tasks}
+          <div className="sidebar-content">
+            <DeadlineDisplay anchors={anchors} />
+            <TaskForm
+              tasks={tasks}
+              anchorTaskIds={anchorTaskIds}
+              anchorDate={anchorDate}
+              onAddTask={addTask}
+              onRemoveTask={removeTask}
+              onToggleAnchor={toggleAnchor}
+              onAnchorDateChange={setAnchorDate}
+              onEditTask={editTask}
               onOpenDetails={handleOpenDetails}
             />
-          ) : viewMode === 'calendar' ? (
-            <CalendarView
-              tasks={scheduledTasks}
-              definitions={tasks}
-              onTaskMove={handleTaskMove}
-              onTaskDurationChange={handleTaskDurationChange}
-            />
-          ) : (
-            <TaskDetailsView
-              key={selectedTaskId} // Reset component state when switching tasks
-              taskId={selectedTaskId}
-              initialEditMode={startInEditMode}
-              tasks={tasks}
-              schedule={scheduledTasks}
-              onUpdateTask={editTask}
-              onDeleteTask={(id) => {
-                removeTask(id);
-                setSelectedTaskId(null);
-              }}
-              onClose={() => setViewMode('timeline')}
-            />
+          </div>
+        </aside>
+
+        {/* Sidebar overlay for mobile */}
+        {sidebarOpen && (
+          <div
+            className="sidebar-overlay md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Main Content */}
+        <main className="app-main">
+          {/* Top bar */}
+          <header className="main-header">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className={`p-2 rounded-lg hover:bg-surface-alt text-text-muted ${sidebarOpen ? 'md:hidden' : ''}`}
+              >
+                <MenuIcon />
+              </button>
+              <h2 className="text-lg font-semibold text-text">
+                {viewMode === 'timeline' ? 'Timeline' : viewMode === 'calendar' ? 'Calendar' : 'Task Details'}
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="bg-surface/20 rounded-lg p-1 flex gap-1">
+                <button
+                  onClick={() => setViewMode('timeline')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'timeline'
+                    ? 'bg-surface text-text shadow-sm'
+                    : 'text-text-muted hover:text-text'
+                    }`}
+                  title="Timeline View"
+                >
+                  <TimelineIcon />
+                </button>
+                <button
+                  onClick={() => setViewMode('calendar')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar'
+                    ? 'bg-surface text-text shadow-sm'
+                    : 'text-text-muted hover:text-text'
+                    }`}
+                  title="Calendar View"
+                >
+                  <CalendarIcon />
+                </button>
+                <button
+                  onClick={() => setViewMode('details')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${viewMode === 'details'
+                    ? 'bg-surface text-text shadow-sm'
+                    : 'text-text-muted hover:text-text'
+                    }`}
+                  title="Task Details"
+                >
+                  <MemoIcon className="w-4 h-4" />
+                  {/* <span className="hidden sm:inline">Details</span> */}
+                </button>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+                    const widget = await WebviewWindow.getByLabel('widget');
+                    if (widget) {
+                      widget.setFocus();
+                    } else {
+                      new WebviewWindow('widget', {
+                        url: 'widget.html',
+                        transparent: true,
+                        decorations: false,
+                        skipTaskbar: true,
+                        resizable: false,
+                        width: 300,
+                        height: 300
+                      });
+                    }
+                  } catch (e) {
+                    console.error('Failed to launch widget:', e);
+                  }
+                }}
+                className="p-2 rounded-lg hover:bg-surface-alt text-text-muted text-xs uppercase font-bold tracking-wider"
+                title="Launch Widget"
+              >
+                WIDGET
+              </button>
+
+              {/* ThemeToggle removed - using system settings */}
+              {/* <ThemeToggle theme={theme as Theme} onThemeChange={(t) => setTheme(t)} /> */}
+            </div>
+          </header>
+
+          {error && (
+            <div className="mx-6 mt-4 bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-lg" role="alert">
+              <strong className="font-semibold">Error: </strong>
+              <span>{error}</span>
+            </div>
           )}
-        </div>
-      </main>
+
+          <div className="main-content">
+            {viewMode === 'timeline' ? (
+              <Timeline
+                tasks={scheduledTasks}
+                definitions={tasks}
+                onOpenDetails={handleOpenDetails}
+              />
+            ) : viewMode === 'calendar' ? (
+              <CalendarView
+                tasks={scheduledTasks}
+                definitions={tasks}
+                onTaskMove={handleTaskMove}
+                onTaskDurationChange={handleTaskDurationChange}
+              />
+            ) : (
+              <TaskDetailsView
+                key={selectedTaskId} // Reset component state when switching tasks
+                taskId={selectedTaskId}
+                initialEditMode={startInEditMode}
+                tasks={tasks}
+                schedule={scheduledTasks}
+                onUpdateTask={editTask}
+                onDeleteTask={(id) => {
+                  removeTask(id);
+                  setSelectedTaskId(null);
+                }}
+                onClose={() => setViewMode('timeline')}
+              />
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

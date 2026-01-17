@@ -39,6 +39,24 @@ pub fn run() {
             // Listen for new windows to apply vibrancy
             // OR just check if 'widget' exists directly if created at startup (it is in tauri.conf.json)
             use tauri::Manager;
+
+            // Apply vibrancy to main window
+            if let Some(main_window) = app.get_webview_window("main") {
+                #[cfg(target_os = "macos")]
+                {
+                    use window_vibrancy::{
+                        apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState,
+                    };
+                    let _ = apply_vibrancy(
+                        &main_window,
+                        NSVisualEffectMaterial::Sidebar,
+                        Some(NSVisualEffectState::Active),
+                        Some(12.0),
+                    );
+                }
+            }
+
+            // Apply vibrancy to widget
             if let Some(window) = app.get_webview_window("widget") {
                 #[cfg(target_os = "macos")]
                 {

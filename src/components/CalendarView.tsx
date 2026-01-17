@@ -208,7 +208,7 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
     };
 
     return (
-        <div className="rbc-calendar-container bg-surface rounded-xl shadow-sm border border-border p-4 h-full flex flex-col overflow-hidden">
+        <div className="rbc-calendar-container bg-surface rounded-xl border border-border p-4 h-full flex flex-col overflow-hidden">
             <CalendarHeader
                 date={date}
                 view={view}

@@ -96,9 +96,9 @@ export function TaskForm({
     };
 
     return (
-        <div className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="bg-surface/50 rounded-xl border border-border overflow-hidden">
             {/* Anchor Date Section */}
-            <div className="p-4 border-b border-border-muted bg-surface-alt">
+            <div className="p-4 border-b border-border-muted bg-surface-alt/50">
                 <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">
                     Target Deadline
                 </label>

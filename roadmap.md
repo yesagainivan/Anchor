@@ -75,7 +75,25 @@ Connect the simulated desktop widget to real backend data.
 
 ---
 
-## 🔥 High Priority (Mostly Done!)
+## 🔥 High Priority
+
+### Main App UI Overhaul
+Gorgeous frosted look with custom title bar using same plugins as widget.
+- [x] Apply vibrancy/blur effect to main window
+- [x] Custom title bar with proper drag regions
+- [x] Translucent sidebar and header backgrounds
+- [x] Visual polish (shadows, borders, blur layers)
+
+### Widget UX/UI Improvements
+Polish and refine the desktop widget experience.
+- [ ] Improved animations and transitions
+- [ ] Better visual hierarchy and typography
+- [ ] Micro-interactions (hover states, loading states)
+- [ ] Compact/refined layout options
+
+---
+
+## ✅ High Priority (Mostly Done!)
 
 ### Minute-level or Hour-level Granularity
 Allow scheduling tasks down to the minute or hour, not just the day.

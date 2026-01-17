@@ -66,7 +66,7 @@ export function TaskDetailsView({
     if (!taskId || !taskDef) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-text-muted">
-                <div className="w-16 h-16 bg-surface-alt rounded-full flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-surface-alt/20 rounded-full flex items-center justify-center mb-4">
                     <MemoIcon className="w-8 h-8 opacity-50" />
                 </div>
                 <p>Select a task to view details</p>
@@ -106,7 +106,7 @@ export function TaskDetailsView({
     };
 
     return (
-        <div className="h-full flex flex-col bg-surface overflow-hidden rounded-xl border border-border shadow-sm">
+        <div className="h-full flex flex-col bg-surface overflow-hidden rounded-xl border border-border">
             {/* Header */}
             <div className="p-6 border-b border-border bg-surface flex items-start justify-between gap-4">
                 <div className="flex-1 flex items-start gap-3">
