@@ -3,7 +3,6 @@ import withDragAndDrop, { withDragAndDropProps } from 'react-big-calendar/lib/ad
 import { format, parse, startOfWeek, getDay, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, endOfWeek, addYears, subYears, parseISO } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { ScheduledTask } from '../types';
-import { useState } from 'react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './CalendarView.css';
@@ -11,7 +10,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { YearView } from './YearView';
 import { Task } from '../types'; // Import Task definition
 
-type CalendarViewType = View | 'year';
+export type CalendarViewType = View | 'year';
 
 interface CalendarHeaderProps {
     date: Date;
@@ -83,6 +82,10 @@ interface CalendarEvent {
 interface CalendarViewProps {
     tasks: ScheduledTask[];
     definitions: Task[];
+    view: CalendarViewType;
+    date: Date;
+    onViewChange: (view: CalendarViewType) => void;
+    onNavigate: (date: Date) => void;
     onTaskMove?: (taskId: string, newDate: string) => void;
     onTaskDurationChange?: (taskId: string, newDurationMinutes: number) => void;
 }
@@ -101,9 +104,17 @@ const localizer = dateFnsLocalizer({
 
 const DnDCalendar = withDragAndDrop<CalendarEvent>(Calendar);
 
-export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationChange }: CalendarViewProps) {
-    const [view, setView] = useState<CalendarViewType>('month');
-    const [date, setDate] = useState(new Date());
+export function CalendarView({
+    tasks,
+    definitions,
+    view,
+    date,
+    onViewChange,
+    onNavigate,
+    onTaskMove,
+    onTaskDurationChange
+}: CalendarViewProps) {
+    // State is now lifted to parent
 
     const events = tasks.map(task => {
         const def = definitions.find(d => d.id === task.id);
@@ -156,22 +167,22 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
 
     const handleNavigate = (action: 'PREV' | 'NEXT' | 'TODAY') => {
         if (action === 'TODAY') {
-            setDate(new Date());
+            onNavigate(new Date());
             return;
         }
 
         switch (view) {
             case 'year':
-                setDate(prev => action === 'NEXT' ? addYears(prev, 1) : subYears(prev, 1));
+                onNavigate(action === 'NEXT' ? addYears(date, 1) : subYears(date, 1));
                 break;
             case 'month':
-                setDate(prev => action === 'NEXT' ? addMonths(prev, 1) : subMonths(prev, 1));
+                onNavigate(action === 'NEXT' ? addMonths(date, 1) : subMonths(date, 1));
                 break;
             case 'week':
-                setDate(prev => action === 'NEXT' ? addWeeks(prev, 1) : subWeeks(prev, 1));
+                onNavigate(action === 'NEXT' ? addWeeks(date, 1) : subWeeks(date, 1));
                 break;
             case 'day':
-                setDate(prev => action === 'NEXT' ? addDays(prev, 1) : subDays(prev, 1));
+                onNavigate(action === 'NEXT' ? addDays(date, 1) : subDays(date, 1));
                 break;
         }
     };
@@ -197,22 +208,23 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
             classes.push('bg-brand border-brand');
         }
 
-        // this is ugly, will fix later with a better solution TODO
-        // if (task.is_critical && !task.completed) {
-        //     classes.push('ring-2 ring-danger ring-offset-1 ring-offset-surface');
-        // }
-
         return {
             className: classes.join(' '),
         };
     };
+
+    // React-big-calendar requires 'date' prop to be controlled if 'view' is controlled.
+    // However, it handles internal navigation if we don't provide onNavigate to the Calendar component itself,
+    // but we want to control it.
+
+    // We used to have internal state, now we use props.
 
     return (
         <div className="rbc-calendar-container bg-surface rounded-xl border border-border p-4 h-full flex flex-col overflow-hidden">
             <CalendarHeader
                 date={date}
                 view={view}
-                onViewChange={setView}
+                onViewChange={onViewChange}
                 onNavigate={handleNavigate}
             />
 
@@ -220,8 +232,8 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
                 {view === 'year' ? (
                     <YearView
                         date={date}
-                        onNavigate={setDate}
-                        onViewChange={(v) => setView(v)}
+                        onNavigate={onNavigate}
+                        onViewChange={(v) => onViewChange(v)}
                         tasks={tasks}
                     />
                 ) : (
@@ -232,9 +244,9 @@ export function CalendarView({ tasks, definitions, onTaskMove, onTaskDurationCha
                         endAccessor="end"
                         style={{ height: '100%' }}
                         view={view as View}
-                        onView={(v) => setView(v)}
+                        onView={(v) => onViewChange(v)}
                         date={date}
-                        onNavigate={setDate}
+                        onNavigate={onNavigate}
                         toolbar={false}
                         popup
                         className="font-sans text-text"

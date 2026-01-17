@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Anchor",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "identifier": "com.ivanowono.anchor",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -38,6 +38,8 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "copyright": "© 2026 Ivan Owono",
+    "shortDescription": "A beautiful, task-focused anchor for your day.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

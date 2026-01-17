@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { TaskForm } from "./components/TaskForm";
 import { Timeline } from "./components/Timeline";
-import { CalendarView } from "./components/CalendarView";
+import { CalendarView, CalendarViewType } from "./components/CalendarView";
 import { DeadlineDisplay } from "./components/DeadlineDisplay";
 // ThemeToggle removed - using system settings
 // import { ThemeToggle, Theme } from "./components/ThemeToggle";
@@ -45,6 +45,10 @@ function App() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [startInEditMode, setStartInEditMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Calendar State
+  const [calendarView, setCalendarView] = useState<CalendarViewType>('month');
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Apply theme to DOM
   useEffect(() => {
@@ -301,6 +305,10 @@ function App() {
                 definitions={tasks}
                 onTaskMove={handleTaskMove}
                 onTaskDurationChange={handleTaskDurationChange}
+                view={calendarView}
+                date={calendarDate}
+                onViewChange={setCalendarView}
+                onNavigate={setCalendarDate}
               />
             ) : (
               <TaskDetailsView

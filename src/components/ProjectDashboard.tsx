@@ -74,7 +74,7 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* Create New Card */}
-                        <div className="bg-surface p-6 rounded-xl border-2 border-dashed border-border hover:border-brand transition-colors flex flex-col items-center justify-center min-h-[200px]">
+                        <div className="bg-surface/50 p-6 rounded-xl border-2 border-dashed border-border hover:border-brand transition-colors flex flex-col items-center justify-center min-h-[200px]">
                             <form onSubmit={handleCreate} className="w-full text-center">
                                 <h3 className="text-lg font-medium text-text mb-4">Start a New Goal</h3>
                                 <input
@@ -82,7 +82,7 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
                                     placeholder="Goal Name (e.g. Launch Marketing)"
                                     value={newProjectName}
                                     onChange={e => setNewProjectName(e.target.value)}
-                                    className="w-full px-4 py-2 rounded-lg bg-surface-alt border border-border focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all mb-4 text-center"
+                                    className="w-full px-4 py-2 rounded-lg bg-surface-alt/30 border border-border focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all mb-4 text-center"
                                     autoFocus
                                 />
                                 <button
@@ -100,7 +100,7 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
                             <div
                                 key={project.id}
                                 onClick={() => onOpenProject(project.id)}
-                                className="bg-surface p-6 rounded-xl border border-border hover:border-brand/50 hover:shadow-lg transition-all cursor-pointer group relative flex flex-col justify-between min-h-[160px]"
+                                className="bg-surface/50 p-6 rounded-xl border border-border hover:border-brand/50 hover:shadow-lg transition-all cursor-pointer group relative flex flex-col justify-between min-h-[160px]"
                             >
                                 <div>
                                     <div className="flex justify-between items-start mb-4">

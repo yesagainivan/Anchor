@@ -1,7 +1,7 @@
 [package]
 name = "anchor"
-version = "0.3.0"
-description = "A Tauri App"
+version = "0.4.0"
+description = "A beautiful, task-focused anchor for your day."
 authors = ["you"]
 edition = "2021"
 

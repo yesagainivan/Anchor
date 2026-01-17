@@ -241,7 +241,7 @@ export function TaskForm({
                                     key={task.id}
                                     className={`p-3 rounded-lg border transition-all ${isAnchor
                                         ? 'border-brand/30 bg-brand/5'
-                                        : 'border-border bg-surface-alt'
+                                        : 'border-border bg-surface-alt/60'
                                         } ${task.completed ? 'opacity-60' : ''}`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
