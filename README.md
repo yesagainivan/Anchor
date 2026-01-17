@@ -7,6 +7,16 @@ Anchor is a retro-planning application designed to tell you *when to start*, not
 
 Built with **Tauri**, **React**, **Rust**, and **TypeScript** for high performance and a native feel.
 
+> [!NOTE]
+> This is a work in progress. The app is functional but isnt signed yet, so you'll need to bypass the security warning when installing.
+
+##### Bypassing the security warning:
+```bash
+xattr -cr /Applications/Anchor.app
+```
+*This process should be entirely safe; checkout the source if you are worried.*
+
+
 ## Philosophy
 
 Most project management tools are **forward-facing**: you pick a start date and hope you finish on time.

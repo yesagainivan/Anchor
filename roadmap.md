@@ -56,7 +56,7 @@ Connect the simulated desktop widget to real backend data.
 - [x] Auto-refresh logic on widget focus
 - [x] Shared state management between main app and widget (Event-Driven)
 - [x] Project Switching
-- [x] Visual Task Progress (Circular indicator)
+- [x] Visual Task Progress
 
 #### Option B: Native Widget (WidgetKit) Might consider this in the future but currently not a priority
 **Pros:** Best user experience, native integration (Notification Center, Desktop in Sonoma+), battery efficient.
@@ -75,15 +75,15 @@ Connect the simulated desktop widget to real backend data.
 
 ---
 
-## 🔥 High Priority (Next)
+## 🔥 High Priority (Mostly Done!)
 
 ### Minute-level or Hour-level Granularity
 Allow scheduling tasks down to the minute or hour, not just the day.
-- [ ] Update data model (chrono)
-- [ ] UI for time selection
-- [ ] Notification triggers for exact times
+- [x] Update data model (chrono)
+- [x] UI for time selection
+- [x] Notification triggers for exact times
 - [ ] Maybe update timeline to show time
-- [ ] Update widget to use time for progress, not just days (currently sits at 0% for tasks that last 1 day)
+- [x] Update widget to use time for progress, not just days (Done! the widget now shows progress based on time)
 
 ### Task Notes System
 Markdown-supported notes for individual tasks.
@@ -104,7 +104,7 @@ Power user efficiency.
 
 ### Data Persistence
 - [x] Save/load projects (JSON-based)
-- [ ] Undo/redo support
+- [x] Undo/redo support
 
 ### Import/Export (TBD)
 - [ ] Export to JSON/CSV
