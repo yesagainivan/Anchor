@@ -101,6 +101,11 @@ export function ProjectDashboard({ onOpenProject, projects, loading, onProjectCh
                     <motion.div
                         variants={cardVariants}
                         whileHover="hover"
+                        style={{
+                            backfaceVisibility: 'hidden',
+                            WebkitFontSmoothing: 'subpixel-antialiased',
+                            transform: 'translateZ(0)'
+                        } as any}
                         className="bg-surface/50 p-6 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center min-h-[200px]"
                     >
                         <form onSubmit={handleCreate} className="w-full text-center">
@@ -130,6 +135,11 @@ export function ProjectDashboard({ onOpenProject, projects, loading, onProjectCh
                             variants={cardVariants}
                             whileHover="hover"
                             onClick={() => onOpenProject(project.id)}
+                            style={{
+                                backfaceVisibility: 'hidden',
+                                WebkitFontSmoothing: 'subpixel-antialiased',
+                                transform: 'translateZ(0)'
+                            } as any}
                             className="bg-surface/50 p-6 rounded-xl border border-border cursor-pointer group relative flex flex-col justify-between min-h-[160px]"
                         >
                             <div>
