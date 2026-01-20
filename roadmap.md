@@ -14,6 +14,8 @@ A backwards scheduling app that works from your deadline, not from today.
 - [x] **Auto-recalculation** — No manual "Calculate" button needed
 - [x] **Desktop Widget (Alpha)** — Simluated floating window
 - [x] **Logo & Branding** — Designing application identity
+- [x] **Animation Overhaul (v0.4.7)** — Orchestrated transitions, wobble-free scale, and smooth tabs.
+- [x] **Layout Polish (v0.4.7)** — Persistent title bar and gap-free navigation.
 
 
 ---
