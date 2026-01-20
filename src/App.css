@@ -309,7 +309,7 @@
     max-height: calc(100vh - 28px);
     overflow: hidden;
     border-radius: 0 12px 12px 12px;
-    background: color-mix(in srgb, var(--color-surface) 50%, transparent);
+    background: color-mix(in srgb, var(--color-surface) 60%, transparent);
     backdrop-filter: blur(12px);
     /* Rounded right corners when overlay */
   }
