@@ -125,6 +125,12 @@ Power user efficiency.
 - [x] Save/load projects (JSON-based)
 - [x] Undo/redo support
 
+### Introduce a "started" state
+- [ ] Add `started` field to tasks
+- [ ] UI for marking tasks as started
+- [ ] Visual distinction for started tasks
+- [ ] Update widget to show started tasks (including progress color)
+
 ### Import/Export (TBD)
 - [ ] Export to JSON/CSV
 - [ ] Import from JSON

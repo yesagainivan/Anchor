@@ -94,6 +94,10 @@ pub fn calculate_backwards_schedule(
         .map(|t| (t.id.clone(), t.clone()))
         .collect();
 
+    if request.tasks.is_empty() {
+        return Ok(Vec::new());
+    }
+
     // --- Backward Pass (Calculate Late Start/Finish) ---
     // Build reverse dependency map: provider -> consumers (to find roots for backward pass)
     let mut dependents: HashMap<String, Vec<String>> = HashMap::new();
@@ -477,5 +481,16 @@ mod tests {
                 task_a.end_date
             );
         }
+    }
+
+    #[test]
+    fn test_empty_project() {
+        let request = ScheduleRequest {
+            tasks: vec![],
+            anchors: HashMap::new(),
+        };
+
+        let result = calculate_backwards_schedule(request).expect("Should handle empty project");
+        assert!(result.is_empty());
     }
 }

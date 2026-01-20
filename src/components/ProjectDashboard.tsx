@@ -5,6 +5,7 @@ import { getStatusBgColor } from "../utils/status";
 // ThemeToggle removed - using system settings
 // import { ThemeToggle, Theme } from "./ThemeToggle";
 import { TitleBar } from "./TitleBar";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 interface ProjectDashboardProps {
     onOpenProject: (id: string) => void;
@@ -15,6 +16,7 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
     const [newProjectName, setNewProjectName] = useState("");
+    const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
     const loadProjects = async () => {
         try {
@@ -47,12 +49,16 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
         }
     };
 
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
+    const handleDeleteClick = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (!confirm("Are you sure you want to delete this project?")) return;
+        setProjectToDelete(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!projectToDelete) return;
 
         try {
-            await invoke("delete_project", { id });
+            await invoke("delete_project", { id: projectToDelete });
             loadProjects();
         } catch (e) {
             console.error(e);
@@ -114,7 +120,7 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
                                             )}
                                         </div>
                                         <button
-                                            onClick={(e) => handleDelete(e, project.id)}
+                                            onClick={(e) => handleDeleteClick(e, project.id)}
                                             className="opacity-0 group-hover:opacity-100 p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all absolute top-4 right-4"
                                             title="Delete Project"
                                         >
@@ -167,7 +173,17 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
                     </div>
                 </div>
             </div>
-        </div>
+
+            <ConfirmationModal
+                isOpen={!!projectToDelete}
+                onClose={() => setProjectToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Delete Project"
+                message="Are you sure you want to delete this project? This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+            />
+        </div >
     );
 }
 
