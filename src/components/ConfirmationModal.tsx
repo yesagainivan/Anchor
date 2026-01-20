@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { createPortal } from 'react-dom';
 
 interface ConfirmationModalProps {
@@ -49,10 +49,10 @@ export function ConfirmationModal({
                                 onClose();
                             }}
                             className={`px-4 py-2 rounded-lg text-white font-medium text-sm transition-colors shadow-sm ${variant === 'danger'
-                                    ? 'bg-danger hover:bg-danger-hover'
-                                    : variant === 'warning'
-                                        ? 'bg-amber-500 hover:bg-amber-600'
-                                        : 'bg-brand hover:bg-brand-hover'
+                                ? 'bg-danger hover:bg-danger-hover'
+                                : variant === 'warning'
+                                    ? 'bg-amber-500 hover:bg-amber-600'
+                                    : 'bg-brand hover:bg-brand-hover'
                                 }`}
                         >
                             {confirmText}
