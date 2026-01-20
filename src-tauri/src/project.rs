@@ -304,7 +304,13 @@ pub fn get_widget_info(
 
     let metadata = match target_metadata {
         Some(m) => m,
-        None => return Ok(None),
+        None => {
+            // Fallback to the first project if the specific one wasn't found (e.g. deleted)
+            match projects.first() {
+                Some(first) => first.clone(),
+                None => return Ok(None),
+            }
+        }
     };
 
     // 3. Prepare summary list for switching
