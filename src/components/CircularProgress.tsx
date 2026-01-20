@@ -23,7 +23,7 @@ export function CircularProgress({
             case 'overdue':
                 return { start: '#ef4444', end: '#dc2626' }; // red
             case 'urgent':
-                return { start: '#f59e0b', end: '#ea580c' }; // amber to orange
+                return { start: '#ea580c', end: '#f59e0b' }; // orange to amber
             case 'on_track':
                 return { start: 'var(--color-success)', end: 'var(--color-success)' };
             default:

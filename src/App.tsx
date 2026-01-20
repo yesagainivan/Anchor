@@ -18,6 +18,28 @@ import "./App.css";
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 
 import { TaskDetailsView } from "./components/TaskDetailsView";
+import { AnimatePresence, motion, Variants } from "framer-motion";
+
+// Helper for page transitions
+const pageVariants: Variants = {
+  initial: { opacity: 0, y: 10, scale: 0.99 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      ease: [0.4, 0.0, 0.2, 1] // Standard smooth easing
+    }
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.99,
+    transition: {
+      duration: 0.2
+    }
+  }
+};
 
 function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
@@ -182,9 +204,20 @@ function App() {
 
   if (!activeProjectId) {
     return (
-      <ProjectDashboard
-        onOpenProject={setActiveProjectId}
-      />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="dashboard"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="h-full"
+        >
+          <ProjectDashboard
+            onOpenProject={setActiveProjectId}
+          />
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
@@ -203,7 +236,14 @@ function App() {
   const tasks = project?.tasks || [];
 
   return (
-    <div className="app-shell">
+    <motion.div
+      key="project-view"
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="app-shell"
+    >
       <TitleBar title={project?.name || "Anchor"} />
       <div className="app-layout">
         {/* Sidebar */}
@@ -342,43 +382,72 @@ function App() {
             </div>
           )}
 
-          <div className="main-content">
-            {viewMode === 'timeline' ? (
-              <Timeline
-                tasks={scheduledTasks}
-                definitions={tasks}
-                onOpenDetails={handleOpenDetails}
-              />
-            ) : viewMode === 'calendar' ? (
-              <CalendarView
-                tasks={scheduledTasks}
-                definitions={tasks}
-                onTaskMove={handleTaskMove}
-                onTaskDurationChange={handleTaskDurationChange}
-                view={calendarView}
-                date={calendarDate}
-                onViewChange={setCalendarView}
-                onNavigate={setCalendarDate}
-              />
-            ) : (
-              <TaskDetailsView
-                key={selectedTaskId} // Reset component state when switching tasks
-                taskId={selectedTaskId}
-                initialEditMode={startInEditMode}
-                tasks={tasks}
-                schedule={scheduledTasks}
-                onUpdateTask={editTask}
-                onDeleteTask={(id) => {
-                  removeTask(id);
-                  setSelectedTaskId(null);
-                }}
-                onClose={() => setViewMode('timeline')}
-              />
-            )}
+          <div className="main-content relative overflow-hidden">
+            <AnimatePresence mode="wait">
+              {viewMode === 'timeline' ? (
+                <motion.div
+                  key="timeline"
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="h-full flex flex-col"
+                >
+                  <Timeline
+                    tasks={scheduledTasks}
+                    definitions={tasks}
+                    onOpenDetails={handleOpenDetails}
+                  />
+                </motion.div>
+              ) : viewMode === 'calendar' ? (
+                <motion.div
+                  key="calendar"
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="h-full flex flex-col"
+                >
+                  <CalendarView
+                    tasks={scheduledTasks}
+                    definitions={tasks}
+                    onTaskMove={handleTaskMove}
+                    onTaskDurationChange={handleTaskDurationChange}
+                    view={calendarView}
+                    date={calendarDate}
+                    onViewChange={setCalendarView}
+                    onNavigate={setCalendarDate}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="details"
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="h-full flex flex-col"
+                >
+                  <TaskDetailsView
+                    key={selectedTaskId} // Reset component state when switching tasks
+                    taskId={selectedTaskId}
+                    initialEditMode={startInEditMode}
+                    tasks={tasks}
+                    schedule={scheduledTasks}
+                    onUpdateTask={editTask}
+                    onDeleteTask={(id) => {
+                      removeTask(id);
+                      setSelectedTaskId(null);
+                    }}
+                    onClose={() => setViewMode('timeline')}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </main>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

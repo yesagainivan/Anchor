@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { motion, Variants } from "framer-motion";
 import { ProjectMetadata } from "../types";
 import { getStatusBgColor } from "../utils/status";
 // ThemeToggle removed - using system settings
@@ -65,6 +66,29 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
         }
     };
 
+    const containerVariants: Variants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const cardVariants: Variants = {
+        hidden: { opacity: 0, y: 20 },
+        show: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                type: "spring",
+                stiffness: 300,
+                damping: 24
+            }
+        }
+    };
+
     return (
         <div className="dashboard-shell">
             <TitleBar title="Anchor" />
@@ -78,9 +102,18 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
                         {/* ThemeToggle removed - using system settings */}
                     </header>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="show"
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    >
                         {/* Create New Card */}
-                        <div className="bg-surface/50 p-6 rounded-xl border-2 border-dashed border-border hover:border-brand transition-colors flex flex-col items-center justify-center min-h-[200px]">
+                        <motion.div
+                            variants={cardVariants}
+                            whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+                            className="bg-surface/50 p-6 rounded-xl border-2 border-dashed border-border hover:border-brand transition-colors flex flex-col items-center justify-center min-h-[200px]"
+                        >
                             <form onSubmit={handleCreate} className="w-full text-center">
                                 <h3 className="text-lg font-medium text-text mb-4">Start a New Goal</h3>
                                 <input
@@ -99,12 +132,14 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
                                     {creating ? "Creating..." : "Create Goal"}
                                 </button>
                             </form>
-                        </div>
+                        </motion.div>
 
                         {/* Project Cards */}
                         {projects.map(project => (
-                            <div
+                            <motion.div
                                 key={project.id}
+                                variants={cardVariants}
+                                whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
                                 onClick={() => onOpenProject(project.id)}
                                 className="bg-surface/50 p-6 rounded-xl border border-border hover:border-brand/50 hover:shadow-lg transition-all cursor-pointer group relative flex flex-col justify-between min-h-[160px]"
                             >
@@ -162,7 +197,7 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
                                         </span>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
 
                         {!loading && projects.length === 0 && (
@@ -170,7 +205,7 @@ export function ProjectDashboard({ onOpenProject }: ProjectDashboardProps) {
                                 <p>No goals yet. Create one to get started!</p>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 </div>
             </div>
 
