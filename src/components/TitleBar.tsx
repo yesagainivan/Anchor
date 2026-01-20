@@ -1,4 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface TitleBarProps {
     title?: string;
@@ -45,7 +46,20 @@ export function TitleBar({ title = "Anchor" }: TitleBarProps) {
             </div>
 
             {/* Title */}
-            <div className="title-bar-title">{title}</div>
+            <div className="title-bar-title relative flex justify-center items-center h-full overflow-hidden w-full">
+                <AnimatePresence mode="wait">
+                    <motion.span
+                        key={title}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute"
+                    >
+                        {title}
+                    </motion.span>
+                </AnimatePresence>
+            </div>
 
             {/* Spacer for centering */}
             <div className="title-bar-spacer" />

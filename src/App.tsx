@@ -18,32 +18,64 @@ import "./App.css";
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 
 import { TaskDetailsView } from "./components/TaskDetailsView";
+import { useProjectsList } from "./hooks/useProjectsList";
 import { AnimatePresence, motion, Variants } from "framer-motion";
 
 // Helper for page transitions
+// Orchestration: Parent handles exit, but children handle entrance
 const pageVariants: Variants = {
-  initial: { opacity: 0, y: 10, scale: 0.99 },
+  initial: { opacity: 1 },
   animate: {
     opacity: 1,
-    y: 0,
-    scale: 1,
     transition: {
-      duration: 0.3,
-      ease: [0.4, 0.0, 0.2, 1] // Standard smooth easing
+      when: "beforeChildren",
+      staggerChildren: 0.1
     }
   },
   exit: {
     opacity: 0,
-    scale: 0.99,
     transition: {
       duration: 0.2
     }
   }
 };
 
+const dashboardVariants: Variants = {
+  initial: { opacity: 1 },
+  animate: { opacity: 1 }, // Immediate entrance for container
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.2 }
+  }
+};
+
+const contentVariants: Variants = {
+  initial: { opacity: 0, x: -10 },
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.3, ease: "easeOut" }
+  }
+};
+
+const tabVariants: Variants = {
+  initial: { opacity: 0, scale: 0.98 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.2 }
+  },
+  exit: {
+    opacity: 0,
+    scale: 1,
+    transition: { duration: 0.1 }
+  }
+};
+
 function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const { theme, loaded: configLoaded } = useConfig();
+  const { projects: projectList, loading: loadingList, refreshProjects } = useProjectsList();
 
   const {
     project,
@@ -202,26 +234,7 @@ function App() {
     return null; // Or a loading spinner
   }
 
-  if (!activeProjectId) {
-    return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          key="dashboard"
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          className="h-full"
-        >
-          <ProjectDashboard
-            onOpenProject={setActiveProjectId}
-          />
-        </motion.div>
-      </AnimatePresence>
-    );
-  }
-
-  if (loading && !project) {
+  if (loading && !project && activeProjectId) { // Only show loading for project, not dashboard
     return (
       <div className="flex items-center justify-center h-screen bg-surface-alt">
         <div className="text-text-muted">Loading project...</div>
@@ -234,220 +247,242 @@ function App() {
   anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
 
   const tasks = project?.tasks || [];
+  const currentTitle = activeProjectId ? (project?.name || "Anchor") : "Anchor";
 
   return (
-    <motion.div
-      key="project-view"
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className="app-shell"
-    >
-      <TitleBar title={project?.name || "Anchor"} />
-      <div className="app-layout">
-        {/* Sidebar */}
-        <aside className={`app-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-          <div className="sidebar-header">
-            <button
-              onClick={() => setActiveProjectId(null)}
-              className="p-1.5 -ml-2 mr-2 rounded-lg hover:bg-surface-alt text-text-muted"
-              title="Back to Dashboard"
+    <div className="app-shell">
+      <TitleBar title={currentTitle} />
+      <div className="flex-1 overflow-hidden relative">
+        <AnimatePresence mode="wait">
+          {!activeProjectId ? (
+            <motion.div
+              key="dashboard"
+              variants={dashboardVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="h-full"
             >
-              <BackIcon />
-            </button>
-            <h1 className="text-xl font-bold text-text tracking-tight truncate flex-1">
-              {project?.name || "Anchor"}
-            </h1>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-1.5 rounded-lg hover:bg-surface-alt text-text-muted transition-colors"
-              title="Close Sidebar"
+              <ProjectDashboard
+                onOpenProject={setActiveProjectId}
+                projects={projectList}
+                loading={loadingList}
+                onProjectChange={refreshProjects}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="project-view"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="h-full flex flex-col"
             >
-              <CloseIcon />
-            </button>
-          </div>
+              <div className="app-layout">
+                {/* Sidebar */}
+                <motion.aside variants={contentVariants} className={`app-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+                  <div className="sidebar-header">
+                    <button
+                      onClick={() => setActiveProjectId(null)}
+                      className="p-1.5 -ml-2 mr-2 rounded-lg hover:bg-surface-alt text-text-muted"
+                      title="Back to Dashboard"
+                    >
+                      <BackIcon />
+                    </button>
+                    <h1 className="text-xl font-bold text-text tracking-tight truncate flex-1">
+                      {project?.name || "Anchor"}
+                    </h1>
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      className="p-1.5 rounded-lg hover:bg-surface-alt text-text-muted transition-colors"
+                      title="Close Sidebar"
+                    >
+                      <CloseIcon />
+                    </button>
+                  </div>
 
-          <div className="sidebar-content">
-            <DeadlineDisplay anchors={anchors} />
-            <TaskForm
-              tasks={tasks}
-              anchorTaskIds={anchorTaskIds}
-              anchorDate={anchorDate}
-              onAddTask={addTask}
-              onRemoveTask={removeTask}
-              onToggleAnchor={toggleAnchor}
-              onAnchorDateChange={setAnchorDate}
-              onEditTask={editTask}
-              onOpenDetails={handleOpenDetails}
-            />
-          </div>
-        </aside>
+                  <div className="sidebar-content">
+                    <DeadlineDisplay anchors={anchors} />
+                    <TaskForm
+                      tasks={tasks}
+                      anchorTaskIds={anchorTaskIds}
+                      anchorDate={anchorDate}
+                      onAddTask={addTask}
+                      onRemoveTask={removeTask}
+                      onToggleAnchor={toggleAnchor}
+                      onAnchorDateChange={setAnchorDate}
+                      onEditTask={editTask}
+                      onOpenDetails={handleOpenDetails}
+                    />
+                  </div>
+                </motion.aside>
 
-        {/* Sidebar overlay for mobile */}
-        {sidebarOpen && (
-          <div
-            className="sidebar-overlay md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+                {/* Sidebar overlay for mobile */}
+                {sidebarOpen && (
+                  <div
+                    className="sidebar-overlay md:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                  />
+                )}
 
-        {/* Main Content */}
-        <main className="app-main">
-          {/* Top bar */}
-          <header className="main-header">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className={`p-2 rounded-lg hover:bg-surface-alt text-text-muted ${sidebarOpen ? 'md:hidden' : ''}`}
-              >
-                <MenuIcon />
-              </button>
-              <h2 className="text-lg font-semibold text-text">
-                {viewMode === 'timeline' ? 'Timeline' : viewMode === 'calendar' ? 'Calendar' : 'Task Details'}
-              </h2>
-            </div>
+                {/* Main Content */}
+                <motion.main variants={contentVariants} className="app-main">
+                  {/* Top bar */}
+                  <header className="main-header">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setSidebarOpen(true)}
+                        className={`p-2 rounded-lg hover:bg-surface-alt text-text-muted ${sidebarOpen ? 'md:hidden' : ''}`}
+                      >
+                        <MenuIcon />
+                      </button>
+                      <h2 className="text-lg font-semibold text-text">
+                        {viewMode === 'timeline' ? 'Timeline' : viewMode === 'calendar' ? 'Calendar' : 'Task Details'}
+                      </h2>
+                    </div>
 
-            <div className="flex items-center gap-2">
-              <div className="bg-surface/20 rounded-lg p-1 flex gap-1">
-                <button
-                  onClick={() => setViewMode('timeline')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'timeline'
-                    ? 'bg-surface text-text shadow-sm'
-                    : 'text-text-muted hover:text-text'
-                    }`}
-                  title="Timeline View"
-                >
-                  <TimelineIcon />
-                </button>
-                <button
-                  onClick={() => setViewMode('calendar')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar'
-                    ? 'bg-surface text-text shadow-sm'
-                    : 'text-text-muted hover:text-text'
-                    }`}
-                  title="Calendar View"
-                >
-                  <CalendarIcon />
-                </button>
-                <button
-                  onClick={() => setViewMode('details')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${viewMode === 'details'
-                    ? 'bg-surface text-text shadow-sm'
-                    : 'text-text-muted hover:text-text'
-                    }`}
-                  title="Task Details"
-                >
-                  <MemoIcon className="w-4 h-4" />
-                  {/* <span className="hidden sm:inline">Details</span> */}
-                </button>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-surface/20 rounded-lg p-1 flex gap-1">
+                        <button
+                          onClick={() => setViewMode('timeline')}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'timeline'
+                            ? 'bg-surface text-text shadow-sm'
+                            : 'text-text-muted hover:text-text'
+                            }`}
+                          title="Timeline View"
+                        >
+                          <TimelineIcon />
+                        </button>
+                        <button
+                          onClick={() => setViewMode('calendar')}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar'
+                            ? 'bg-surface text-text shadow-sm'
+                            : 'text-text-muted hover:text-text'
+                            }`}
+                          title="Calendar View"
+                        >
+                          <CalendarIcon />
+                        </button>
+                        <button
+                          onClick={() => setViewMode('details')}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${viewMode === 'details'
+                            ? 'bg-surface text-text shadow-sm'
+                            : 'text-text-muted hover:text-text'
+                            }`}
+                          title="Task Details"
+                        >
+                          <MemoIcon className="w-4 h-4" />
+                          {/* <span className="hidden sm:inline">Details</span> */}
+                        </button>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+                            const widget = await WebviewWindow.getByLabel('widget');
+                            if (widget) {
+                              widget.setFocus();
+                            } else {
+                              new WebviewWindow('widget', {
+                                url: 'widget.html',
+                                transparent: true,
+                                decorations: false,
+                                skipTaskbar: true,
+                                resizable: false,
+                                width: 300,
+                                height: 300
+                              });
+                            }
+                          } catch (e) {
+                            console.error('Failed to launch widget:', e);
+                          }
+                        }}
+                        className="p-2 rounded-lg hover:bg-surface-alt text-text-muted text-xs uppercase font-bold tracking-wider"
+                        title="Launch Widget"
+                      >
+                        WIDGET
+                      </button>
+                    </div>
+                  </header>
+
+                  {error && (
+                    <div className="mx-6 mt-4 bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-lg" role="alert">
+                      <strong className="font-semibold">Error: </strong>
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <div className="main-content relative overflow-hidden">
+                    <AnimatePresence mode="wait">
+                      {viewMode === 'timeline' ? (
+                        <motion.div
+                          key="timeline"
+                          variants={tabVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="h-full flex flex-col"
+                        >
+                          <Timeline
+                            tasks={scheduledTasks}
+                            definitions={tasks}
+                            onOpenDetails={handleOpenDetails}
+                          />
+                        </motion.div>
+                      ) : viewMode === 'calendar' ? (
+                        <motion.div
+                          key="calendar"
+                          variants={tabVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="h-full flex flex-col"
+                        >
+                          <CalendarView
+                            tasks={scheduledTasks}
+                            definitions={tasks}
+                            onTaskMove={handleTaskMove}
+                            onTaskDurationChange={handleTaskDurationChange}
+                            view={calendarView}
+                            date={calendarDate}
+                            onViewChange={setCalendarView}
+                            onNavigate={setCalendarDate}
+                          />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="details"
+                          variants={tabVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="h-full flex flex-col"
+                        >
+                          <TaskDetailsView
+                            key={selectedTaskId} // Reset component state when switching tasks
+                            taskId={selectedTaskId}
+                            initialEditMode={startInEditMode}
+                            tasks={tasks}
+                            schedule={scheduledTasks}
+                            onUpdateTask={editTask}
+                            onDeleteTask={(id) => {
+                              removeTask(id);
+                              setSelectedTaskId(null);
+                            }}
+                            onClose={() => setViewMode('timeline')}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </motion.main>
               </div>
-              <button
-                onClick={async () => {
-                  try {
-                    const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
-                    const widget = await WebviewWindow.getByLabel('widget');
-                    if (widget) {
-                      widget.setFocus();
-                    } else {
-                      new WebviewWindow('widget', {
-                        url: 'widget.html',
-                        transparent: true,
-                        decorations: false,
-                        skipTaskbar: true,
-                        resizable: false,
-                        width: 300,
-                        height: 300
-                      });
-                    }
-                  } catch (e) {
-                    console.error('Failed to launch widget:', e);
-                  }
-                }}
-                className="p-2 rounded-lg hover:bg-surface-alt text-text-muted text-xs uppercase font-bold tracking-wider"
-                title="Launch Widget"
-              >
-                WIDGET
-              </button>
-
-              {/* ThemeToggle removed - using system settings */}
-              {/* <ThemeToggle theme={theme as Theme} onThemeChange={(t) => setTheme(t)} /> */}
-            </div>
-          </header>
-
-          {error && (
-            <div className="mx-6 mt-4 bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-lg" role="alert">
-              <strong className="font-semibold">Error: </strong>
-              <span>{error}</span>
-            </div>
+            </motion.div>
           )}
-
-          <div className="main-content relative overflow-hidden">
-            <AnimatePresence mode="wait">
-              {viewMode === 'timeline' ? (
-                <motion.div
-                  key="timeline"
-                  variants={pageVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="h-full flex flex-col"
-                >
-                  <Timeline
-                    tasks={scheduledTasks}
-                    definitions={tasks}
-                    onOpenDetails={handleOpenDetails}
-                  />
-                </motion.div>
-              ) : viewMode === 'calendar' ? (
-                <motion.div
-                  key="calendar"
-                  variants={pageVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="h-full flex flex-col"
-                >
-                  <CalendarView
-                    tasks={scheduledTasks}
-                    definitions={tasks}
-                    onTaskMove={handleTaskMove}
-                    onTaskDurationChange={handleTaskDurationChange}
-                    view={calendarView}
-                    date={calendarDate}
-                    onViewChange={setCalendarView}
-                    onNavigate={setCalendarDate}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="details"
-                  variants={pageVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="h-full flex flex-col"
-                >
-                  <TaskDetailsView
-                    key={selectedTaskId} // Reset component state when switching tasks
-                    taskId={selectedTaskId}
-                    initialEditMode={startInEditMode}
-                    tasks={tasks}
-                    schedule={scheduledTasks}
-                    onUpdateTask={editTask}
-                    onDeleteTask={(id) => {
-                      removeTask(id);
-                      setSelectedTaskId(null);
-                    }}
-                    onClose={() => setViewMode('timeline')}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </main>
+        </AnimatePresence>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

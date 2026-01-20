@@ -20,7 +20,7 @@ export function DeadlineDisplay({ anchors }: DeadlineDisplayProps) {
     const colorClass = getStatusColor(status);
 
     return (
-        <div className="bg-surface-raised/50 rounded-xl p-5 border border-border">
+        <div className="bg-surface-raised/40 rounded-xl p-5 border border-border">
             <div className="flex items-center justify-between">
                 <div>
                     <p className="text-text-faint text-xs font-medium uppercase tracking-wider">
