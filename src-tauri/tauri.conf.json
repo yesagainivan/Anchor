@@ -22,6 +22,7 @@
       },
       {
         "label": "widget",
+        "title": "Anchor Widget",
         "url": "widget.html",
         "transparent": true,
         "decorations": false,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Task } from '../types';
 import { AnchorIcon, CloseIcon, EditIcon, CheckIcon, MemoIcon, DiamondIcon, ChevronRightIcon, ChevronDownIcon } from './icons';
 import { Checkbox } from './Checkbox';
@@ -124,91 +125,104 @@ export function TaskForm({
                     {editingTaskId ? 'Edit Task' : 'Add Task'}
                 </button>
 
-                <div className={`space-y-3 p-1 -m-1 transition-all duration-300 ease-in-out overflow-hidden ${isFormCollapsed && !editingTaskId ? 'max-h-0 opacity-0 mt-0 pt-0 pb-0' : 'max-h-[500px] opacity-100 mt-3 p-1'}`}>
-                    <input
-                        placeholder="Task name"
-                        className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none transition-colors"
-                        value={newTaskName}
-                        onChange={(e) => setNewTaskName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                    />
-
-                    <div className="flex gap-3">
-                        <div className="flex-1">
-                            <label className="block text-xs text-text-muted mb-1">Duration</label>
-                            <SmartDurationInput
-                                value={newTaskDuration}
-                                unit={durationUnit}
-                                onChange={(val, unit) => {
-                                    setNewTaskDuration(val);
-                                    setDurationUnit(unit);
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {tasks.length > 0 && (
-                        <div>
-                            <label className="block text-xs text-text-muted mb-1.5">Depends on</label>
-                            <div className="flex flex-wrap gap-1.5">
-                                {tasks
-                                    .filter(task => task.id !== editingTaskId) // Prevent self-dependency
-                                    .map(task => (
-                                        <button
-                                            key={task.id}
-                                            type="button"
-                                            onClick={() => toggleDependency(task.id)}
-                                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${selectedDependencies.includes(task.id)
-                                                ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
-                                                : 'bg-surface-alt text-text-muted hover:bg-border'
-                                                }`}
-                                        >
-                                            {task.name}
-                                        </button>
-                                    ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div>
-                        <label className="block text-xs text-text-muted mb-1">Notes</label>
-                        <textarea
-                            className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none min-h-[80px] transition-colors"
-                            placeholder="Add details, requirements, or links (Markdown supported)"
-                            value={newTaskNotes}
-                            onChange={(e) => setNewTaskNotes(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            checked={isMilestone}
-                            onChange={setIsMilestone}
-                            label="Mark as Milestone"
-                            className="text-sm text-text"
-                        />
-                    </div>
-
-                    <div className="flex gap-2">
-                        {editingTaskId && (
-                            <button
-                                type="button"
-                                onClick={handleCancelEdit}
-                                className="flex-1 bg-surface-alt text-text-muted py-2 rounded-lg text-sm font-medium hover:bg-border transition-colors"
-                            >
-                                Cancel
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={!newTaskName.trim()}
-                            className={`flex-1 bg-brand text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors`}
+                <AnimatePresence>
+                    {(!isFormCollapsed || editingTaskId) && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                            animate={{ height: 'auto', opacity: 1, marginTop: 12 }}
+                            exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
                         >
-                            {editingTaskId ? 'Update Task' : 'Add Task'}
-                        </button>
-                    </div>
-                </div>
+                            <div className="space-y-3 p-1 -m-1">
+                                <input
+                                    placeholder="Task name"
+                                    className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none transition-colors"
+                                    value={newTaskName}
+                                    onChange={(e) => setNewTaskName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                                    autoFocus // Nice to have when expanding
+                                />
+
+                                <div className="flex gap-3">
+                                    <div className="flex-1">
+                                        <label className="block text-xs text-text-muted mb-1">Duration</label>
+                                        <SmartDurationInput
+                                            value={newTaskDuration}
+                                            unit={durationUnit}
+                                            onChange={(val, unit) => {
+                                                setNewTaskDuration(val);
+                                                setDurationUnit(unit);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {tasks.length > 0 && (
+                                    <div>
+                                        <label className="block text-xs text-text-muted mb-1.5">Depends on</label>
+                                        <div className="flex flex-wrap gap-1.5 max-h-[200px] overflow-y-auto custom-scrollbar">
+                                            {tasks
+                                                .filter(task => task.id !== editingTaskId) // Prevent self-dependency
+                                                .map(task => (
+                                                    <button
+                                                        key={task.id}
+                                                        type="button"
+                                                        onClick={() => toggleDependency(task.id)}
+                                                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${selectedDependencies.includes(task.id)
+                                                            ? 'bg-brand/10 text-brand ring-1 ring-brand/30'
+                                                            : 'bg-surface-alt text-text-muted hover:bg-border'
+                                                            }`}
+                                                    >
+                                                        {task.name}
+                                                    </button>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-xs text-text-muted mb-1">Notes</label>
+                                    <textarea
+                                        className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none min-h-[80px] transition-colors"
+                                        placeholder="Add details, requirements, or links (Markdown supported)"
+                                        value={newTaskNotes}
+                                        onChange={(e) => setNewTaskNotes(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        checked={isMilestone}
+                                        onChange={setIsMilestone}
+                                        label="Mark as Milestone"
+                                        className="text-sm text-text"
+                                    />
+                                </div>
+
+                                <div className="flex gap-2">
+                                    {editingTaskId && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCancelEdit}
+                                            className="flex-1 bg-surface-alt text-text-muted py-2 rounded-lg text-sm font-medium hover:bg-border transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={handleSubmit}
+                                        disabled={!newTaskName.trim()}
+                                        className={`flex-1 bg-brand text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors`}
+                                    >
+                                        {editingTaskId ? 'Update Task' : 'Add Task'}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Task List */}
