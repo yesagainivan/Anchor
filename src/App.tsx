@@ -471,6 +471,9 @@ function App() {
                               setSelectedTaskId(null);
                             }}
                             onClose={() => setViewMode('timeline')}
+                            taskAnchorDate={selectedTaskId ? anchors[selectedTaskId] : undefined}
+                            onUpdateAnchor={updateTaskAnchor}
+                            onToggleAnchor={toggleAnchor}
                           />
                         </motion.div>
                       )}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Task, ScheduledTask } from '../types';
-import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, BackIcon, EditIcon, DiamondIcon, TimelineIcon } from './icons';
+import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, BackIcon, EditIcon, DiamondIcon, TimelineIcon, AnchorIcon } from './icons';
 import { Checkbox } from './Checkbox';
 import { format, parseISO } from 'date-fns';
 import { SmartDurationInput } from './ui/SmartDurationInput';
@@ -15,6 +15,9 @@ interface TaskDetailsViewProps {
     onDeleteTask: (taskId: string) => void;
     onClose: () => void;
     initialEditMode?: boolean;
+    taskAnchorDate?: string;
+    onUpdateAnchor?: (taskId: string, date: string) => void;
+    onToggleAnchor?: (taskId: string) => void;
 }
 
 export function TaskDetailsView({
@@ -24,7 +27,10 @@ export function TaskDetailsView({
     onUpdateTask,
     onDeleteTask,
     onClose,
-    initialEditMode = false
+    initialEditMode = false,
+    taskAnchorDate,
+    onUpdateAnchor,
+    onToggleAnchor
 }: TaskDetailsViewProps) {
     const [isEditing, setIsEditing] = useState(initialEditMode);
 
@@ -35,6 +41,7 @@ export function TaskDetailsView({
     const [editDuration, setEditDuration] = useState(1);
     const [editDurationUnit, setEditDurationUnit] = useState<'minutes' | 'hours' | 'days'>('days');
     const [editDependencies, setEditDependencies] = useState<string[]>([]);
+    const [editAnchorDate, setEditAnchorDate] = useState<string>('');
 
     // Autosave State
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -106,6 +113,7 @@ export function TaskDetailsView({
             }
 
             setEditDependencies(taskDef.dependencies || []);
+            setEditAnchorDate(taskAnchorDate || '');
             setIsDirty(false);
             setSaveStatus('idle');
             setIsEditing(initialEditMode);
@@ -123,8 +131,9 @@ export function TaskDetailsView({
         isMilestoneEditing,
         editDuration,
         editDurationUnit,
-        editDependencies
-    }), [editName, editNotes, isMilestoneEditing, editDuration, editDurationUnit, editDependencies]);
+        editDependencies,
+        editAnchorDate
+    }), [editName, editNotes, isMilestoneEditing, editDuration, editDurationUnit, editDependencies, editAnchorDate]);
 
     // Debounce the form data - save only triggers after user stops typing for 1.5s
     const debouncedFormData = useDebounce(formData, 1500);
@@ -166,6 +175,22 @@ export function TaskDetailsView({
         setSaveStatus('saving');
         onUpdateTask(updatedTask);
 
+        // Also save anchor if changed
+        if (onUpdateAnchor && onToggleAnchor && taskDef) {
+            // Check if anchor changed
+            if (editAnchorDate !== (taskAnchorDate || '')) {
+                if (editAnchorDate) {
+                    onUpdateAnchor(taskDef.id, editAnchorDate);
+                } else if (taskAnchorDate) {
+                    // If cleared, we toggle it off
+                    // Note: toggleAnchor logic in useProject toggles existence. 
+                    // If we want to strictly remove, we might need to check if it exists first.
+                    // But here we know it existed (taskAnchorDate was set).
+                    onToggleAnchor(taskDef.id);
+                }
+            }
+        }
+
         // Clear any existing timeout
         if (saveStatusTimeoutRef.current) {
             window.clearTimeout(saveStatusTimeoutRef.current);
@@ -196,6 +221,18 @@ export function TaskDetailsView({
         if (updatedTask && isDirty) {
             setSaveStatus('saving');
             onUpdateTask(updatedTask);
+
+            // Manual save for anchor too
+            if (onUpdateAnchor && onToggleAnchor && taskDef) {
+                if (editAnchorDate !== (taskAnchorDate || '')) {
+                    if (editAnchorDate) {
+                        onUpdateAnchor(taskDef.id, editAnchorDate);
+                    } else if (taskAnchorDate) {
+                        onToggleAnchor(taskDef.id);
+                    }
+                }
+            }
+
             setIsDirty(false);
 
             // Brief visual feedback
@@ -312,6 +349,33 @@ export function TaskDetailsView({
                                             className="w-24"
                                         />
                                     </div>
+                                    <div className="w-px h-4 bg-border" />
+
+                                    {/* Anchor Date Input */}
+                                    <div className="flex items-center gap-2">
+                                        <div className={`p-1 rounded ${editAnchorDate ? 'text-brand bg-brand/10' : 'text-text-muted bg-surface-alt'}`}>
+                                            <AnchorIcon className="w-4 h-4" />
+                                        </div>
+                                        <input
+                                            type="datetime-local"
+                                            className="bg-transparent border-none p-0 text-text text-sm focus:ring-0 outline-none"
+                                            value={editAnchorDate.length > 16 ? editAnchorDate.slice(0, 16) : editAnchorDate}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                handleValueChange(setEditAnchorDate, val.length === 16 ? `${val}:00` : val);
+                                            }}
+                                            placeholder="Set Deadline"
+                                        />
+                                        {editAnchorDate && (
+                                            <button
+                                                onClick={() => handleValueChange(setEditAnchorDate, '')}
+                                                className="text-text-muted hover:text-text"
+                                                title="Clear Anchor"
+                                            >
+                                                <CloseIcon className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
                                     {taskSched && (
                                         <>
                                             <div className="w-px h-4 bg-border" />
@@ -340,6 +404,16 @@ export function TaskDetailsView({
                                             <CalendarIcon className="w-4 h-4" />
                                             <span>
                                                 {format(parseISO(taskSched.start_date), 'MMM d')} - {format(parseISO(taskSched.end_date), 'MMM d')}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Read-only Anchor Display */}
+                                    {taskAnchorDate && (
+                                        <div className="flex items-center gap-1.5 text-brand" title="Anchored Deadline">
+                                            <AnchorIcon className="w-4 h-4" />
+                                            <span>
+                                                {format(parseISO(taskAnchorDate), 'MMM d, HH:mm')}
                                             </span>
                                         </div>
                                     )}

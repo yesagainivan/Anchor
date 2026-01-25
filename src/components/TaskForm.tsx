@@ -101,7 +101,7 @@ export function TaskForm({
             {/* Anchor Date Section */}
             <div className="p-4 border-b border-border-muted bg-surface-alt/50">
                 <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">
-                    Target Deadline
+                    Default Project Deadline
                 </label>
                 <input
                     type="datetime-local"
