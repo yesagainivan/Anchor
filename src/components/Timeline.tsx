@@ -458,6 +458,23 @@ export function Timeline({ tasks, definitions, onOpenDetails }: TimelineProps) {
                                             {task.is_milestone && (
                                                 <DiamondIcon className="w-3.5 h-3.5 text-white/90 drop-shadow-sm" />
                                             )}
+
+                                            {/* Subtask Progress Bar */}
+                                            {(() => {
+                                                const def = definitions.find(d => d.id === task.id);
+                                                if (!def?.subtasks?.length) return null;
+
+                                                return (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-1.5 flex gap-[1px] px-1 pb-1">
+                                                        {def.subtasks.map((st, i) => (
+                                                            <div
+                                                                key={i}
+                                                                className={`h-full flex-1 rounded-full ${st.completed ? 'bg-white/90' : 'bg-black/10'} transition-colors`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 </div>

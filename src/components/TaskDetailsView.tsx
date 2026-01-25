@@ -495,12 +495,7 @@ export function TaskDetailsView({
             <div className={`p-6 flex-1 overflow-auto ${isEditing ? 'bg-surface-alt/20' : ''}`}>
                 <div className="max-w-3xl mx-auto h-full flex flex-col">
                     <div className="flex items-center justify-between mb-2">
-                        {!isEditing && (
-                            <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
-                                <MemoIcon className="w-4 h-4" />
-                                Notes
-                            </h3>
-                        )}
+
                     </div>
 
                     <div className="flex-1 min-h-[200px] h-full">
@@ -641,7 +636,13 @@ export function TaskDetailsView({
                                     </div>
                                 )}
                                 {taskDef.notes ? (
-                                    <ReactMarkdown>{taskDef.notes}</ReactMarkdown>
+                                    <>
+                                        <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2 mb-3 not-prose">
+                                            <MemoIcon className="w-4 h-4" />
+                                            Notes
+                                        </h3>
+                                        <ReactMarkdown>{taskDef.notes}</ReactMarkdown>
+                                    </>
                                 ) : (
                                     <p className="text-text-faint italic">No notes added.</p>
                                 )}
