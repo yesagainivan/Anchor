@@ -134,7 +134,7 @@ export function TaskForm({
                             transition={{ duration: 0.3, ease: 'easeInOut' }}
                             className="overflow-hidden"
                         >
-                            <div className="space-y-3 p-1 -m-1">
+                            <div className="space-y-3">
                                 <input
                                     placeholder="Task name"
                                     className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text placeholder:text-text-faint focus:border-brand focus:ring-0 outline-none transition-colors"
