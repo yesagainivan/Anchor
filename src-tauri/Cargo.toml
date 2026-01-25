@@ -1,6 +1,6 @@
 [package]
 name = "anchor"
-version = "0.4.5"
+version = "0.4.10"
 description = "A beautiful, task-focused anchor for your day."
 authors = ["you"]
 edition = "2021"
