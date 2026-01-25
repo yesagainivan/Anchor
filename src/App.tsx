@@ -242,9 +242,8 @@ function App() {
     );
   }
 
-  // Build anchors object for components that need it
-  const anchors: Record<string, string> = {};
-  anchorTaskIds.forEach(id => { anchors[id] = anchorDate; });
+  // Build anchors object from project data
+  const anchors: Record<string, string> = project?.anchors || {};
 
   const tasks = project?.tasks || [];
   const currentTitle = activeProjectId ? (project?.name || "Anchor") : "Anchor";
