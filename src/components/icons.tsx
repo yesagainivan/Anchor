@@ -127,3 +127,9 @@ export const DiamondIcon = ({ className = "w-4 h-4" }: { className?: string }) =
         <path d="M18.1923 13.0066L13.0066 18.1923C12.4507 18.7482 11.5492 18.7482 10.9933 18.1923L5.80761 13.0066C5.25173 12.4507 5.25173 11.5492 5.80761 10.9933L10.9933 5.80761C11.5492 5.25173 12.4507 5.25173 13.0066 5.80761L18.1923 10.9933C18.7482 11.5492 18.7482 12.4507 18.1923 13.0066Z" />
     </svg>
 );
+
+export const PlusIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+);

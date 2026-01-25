@@ -8,6 +8,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
+/// A subtask within a larger task.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SubTask {
+    pub id: String,
+    pub name: String,
+    pub completed: bool,
+}
+
 /// A task definition with dependencies.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Task {
@@ -23,6 +31,8 @@ pub struct Task {
     pub notes: Option<String>,
     #[serde(default)]
     pub is_milestone: bool,
+    #[serde(default)]
+    pub subtasks: Vec<SubTask>,
 }
 
 /// A scheduled task with computed start and end dates.
@@ -324,6 +334,7 @@ mod tests {
                     completed: false,
                     notes: None,
                     is_milestone: false,
+                    subtasks: vec![],
                 },
                 Task {
                     id: "b".into(),
@@ -334,6 +345,7 @@ mod tests {
                     completed: false,
                     notes: None,
                     is_milestone: false,
+                    subtasks: vec![],
                 },
             ],
             anchors: [("b".into(), "2026-01-15".into())].into(),
@@ -358,6 +370,7 @@ mod tests {
                     completed: false,
                     notes: None,
                     is_milestone: false,
+                    subtasks: vec![],
                 },
                 Task {
                     id: "b".into(),
@@ -368,6 +381,7 @@ mod tests {
                     completed: false,
                     notes: None,
                     is_milestone: false,
+                    subtasks: vec![],
                 },
             ],
             anchors: [("b".into(), "2026-01-15T10:00:00".into())].into(),
@@ -397,6 +411,7 @@ mod tests {
                     completed: false,
                     notes: None,
                     is_milestone: false,
+                    subtasks: vec![],
                 },
                 Task {
                     id: "b".into(),
@@ -407,6 +422,7 @@ mod tests {
                     completed: false,
                     notes: None,
                     is_milestone: false,
+                    subtasks: vec![],
                 },
             ],
             anchors: [("a".into(), "2026-01-15".into())].into(),
@@ -445,6 +461,7 @@ mod tests {
                     completed: false,
                     notes: None,
                     is_milestone: false,
+                    subtasks: vec![],
                 },
                 Task {
                     id: "b".into(),
@@ -455,6 +472,7 @@ mod tests {
                     completed: false,
                     notes: None,
                     is_milestone: false,
+                    subtasks: vec![],
                 },
             ],
             anchors: [

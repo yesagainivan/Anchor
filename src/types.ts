@@ -7,6 +7,13 @@ export interface Task {
     completed?: boolean;
     notes?: string;
     is_milestone?: boolean;
+    subtasks?: SubTask[];
+}
+
+export interface SubTask {
+    id: string;
+    name: string;
+    completed: boolean;
 }
 
 export interface ScheduledTask {

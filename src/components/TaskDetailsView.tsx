@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Task, ScheduledTask } from '../types';
-import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, BackIcon, EditIcon, DiamondIcon, TimelineIcon, AnchorIcon } from './icons';
+import { Task, ScheduledTask, SubTask } from '../types';
+import { MemoIcon, CalendarIcon, CheckIcon, CloseIcon, BackIcon, EditIcon, DiamondIcon, TimelineIcon, AnchorIcon, PlusIcon } from './icons';
 import { Checkbox } from './Checkbox';
 import { format, parseISO } from 'date-fns';
 import { SmartDurationInput } from './ui/SmartDurationInput';
@@ -42,6 +42,8 @@ export function TaskDetailsView({
     const [editDurationUnit, setEditDurationUnit] = useState<'minutes' | 'hours' | 'days'>('days');
     const [editDependencies, setEditDependencies] = useState<string[]>([]);
     const [editAnchorDate, setEditAnchorDate] = useState<string>('');
+    const [editSubtasks, setEditSubtasks] = useState<SubTask[]>([]);
+    const [newSubtaskName, setNewSubtaskName] = useState('');
 
     // Autosave State
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -84,7 +86,8 @@ export function TaskDetailsView({
                 is_milestone: prevFormData.isMilestoneEditing,
                 duration_days: durationDays,
                 duration_minutes: durationMinutes,
-                dependencies: prevFormData.editDependencies
+                dependencies: prevFormData.editDependencies,
+                subtasks: prevFormData.editSubtasks
             });
         }
 
@@ -114,6 +117,8 @@ export function TaskDetailsView({
 
             setEditDependencies(taskDef.dependencies || []);
             setEditAnchorDate(taskAnchorDate || '');
+            setEditSubtasks(taskDef.subtasks || []);
+            setNewSubtaskName('');
             setIsDirty(false);
             setSaveStatus('idle');
             setIsEditing(initialEditMode);
@@ -122,6 +127,19 @@ export function TaskDetailsView({
         // Update refs for next switch
         prevTaskDefRef.current = taskDef || null;
     }, [taskId, taskDef, initialEditMode, isDirty, onUpdateTask]);
+
+    useEffect(() => {
+        if (!isEditing && taskDef && !isDirty) {
+            setEditName(taskDef.name);
+            setEditNotes(taskDef.notes || '');
+            setIsMilestoneEditing(taskDef.is_milestone || false);
+            // Duration logic... might be complex to repeat, but essential for sync. 
+            // Ideally we extract the "init form from task" logic.
+            // For now, let's just sync subtasks and basics that might be toggled in view mode (like completion?). 
+            // Actually, completion is not part of form state except via taskDef.completed.
+            setEditSubtasks(taskDef.subtasks || []);
+        }
+    }, [taskDef, isEditing, isDirty]);
 
     // === DEBOUNCED AUTOSAVE PATTERN ===
     // Create a stable form data object for debouncing
@@ -132,8 +150,9 @@ export function TaskDetailsView({
         editDuration,
         editDurationUnit,
         editDependencies,
-        editAnchorDate
-    }), [editName, editNotes, isMilestoneEditing, editDuration, editDurationUnit, editDependencies, editAnchorDate]);
+        editAnchorDate,
+        editSubtasks
+    }), [editName, editNotes, isMilestoneEditing, editDuration, editDurationUnit, editDependencies, editAnchorDate, editSubtasks]);
 
     // Debounce the form data - save only triggers after user stops typing for 1.5s
     const debouncedFormData = useDebounce(formData, 1500);
@@ -160,7 +179,8 @@ export function TaskDetailsView({
             is_milestone: data.isMilestoneEditing,
             duration_days: durationDays,
             duration_minutes: durationMinutes,
-            dependencies: data.editDependencies
+            dependencies: data.editDependencies,
+            subtasks: data.editSubtasks
         };
     };
 
@@ -488,6 +508,58 @@ export function TaskDetailsView({
                             <div className="flex flex-col gap-6 h-full">
                                 <div>
                                     <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2 mb-3">
+                                        <CheckIcon className="w-4 h-4" />
+                                        Checklist
+                                    </h3>
+                                    <div className="space-y-2 mb-2">
+                                        {editSubtasks.map(st => (
+                                            <div key={st.id} className="flex items-center gap-2 group">
+                                                <Checkbox
+                                                    checked={st.completed}
+                                                    onChange={(checked) => {
+                                                        const newSts = editSubtasks.map(s => s.id === st.id ? { ...s, completed: checked } : s);
+                                                        handleValueChange(setEditSubtasks, newSts);
+                                                    }}
+                                                />
+                                                <input
+                                                    className="flex-1 bg-transparent border-none p-0 text-sm text-text focus:ring-0 placeholder:text-text-muted/50"
+                                                    value={st.name}
+                                                    onChange={e => {
+                                                        const newSts = editSubtasks.map(s => s.id === st.id ? { ...s, name: e.target.value } : s);
+                                                        handleValueChange(setEditSubtasks, newSts);
+                                                    }}
+                                                    placeholder="Subtask name"
+                                                />
+                                                <button onClick={() => {
+                                                    const newSts = editSubtasks.filter(s => s.id !== st.id);
+                                                    handleValueChange(setEditSubtasks, newSts);
+                                                }}
+                                                    className="text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                                >
+                                                    <CloseIcon className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <div className="flex items-center gap-2 pl-[3px]">
+                                            <div className="w-4 flex justify-center"><PlusIcon className="w-3.5 h-3.5 text-text-muted" /></div>
+                                            <input
+                                                className="flex-1 bg-transparent border-none p-0 text-sm text-text placeholder:text-text-muted/70 focus:ring-0"
+                                                placeholder="Add subtask..."
+                                                value={newSubtaskName}
+                                                onChange={e => setNewSubtaskName(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter' && newSubtaskName.trim()) {
+                                                        const newSt = { id: crypto.randomUUID(), name: newSubtaskName.trim(), completed: false };
+                                                        handleValueChange(setEditSubtasks, [...editSubtasks, newSt]);
+                                                        setNewSubtaskName('');
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2 mb-3">
                                         <TimelineIcon className="w-4 h-4" />
                                         Dependencies
                                     </h3>
@@ -544,6 +616,30 @@ export function TaskDetailsView({
                             </div>
                         ) : (
                             <div className="prose prose-sm max-w-none text-text">
+                                {taskDef.subtasks && taskDef.subtasks.length > 0 && (
+                                    <div className="mb-6 not-prose">
+                                        <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2 mb-3">
+                                            <CheckIcon className="w-4 h-4" />
+                                            Checklist
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {taskDef.subtasks.map(st => (
+                                                <div key={st.id} className="flex items-start gap-2 group">
+                                                    <Checkbox
+                                                        checked={st.completed}
+                                                        onChange={(checked) => {
+                                                            const newSubtasks = (taskDef.subtasks || []).map(s => s.id === st.id ? { ...s, completed: checked } : s);
+                                                            onUpdateTask({ ...taskDef, subtasks: newSubtasks });
+                                                        }}
+                                                    />
+                                                    <span className={`text-sm mt-0.5 ${st.completed ? 'text-text-muted line-through' : 'text-text'}`}>
+                                                        {st.name}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 {taskDef.notes ? (
                                     <ReactMarkdown>{taskDef.notes}</ReactMarkdown>
                                 ) : (
